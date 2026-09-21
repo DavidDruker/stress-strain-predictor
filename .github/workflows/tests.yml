@@ -1,0 +1,50 @@
+name: tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: py${{ matrix.python-version }} / ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        python-version: ["3.12", "3.13"]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+
+      - name: Install
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[dev]"
+
+      - name: Lint
+        run: python -m ruff check stresspredict tests
+
+      - name: Run tests
+        # The datasets are not committed (see data/README.md), so the
+        # integration tests skip themselves here with a clear reason rather
+        # than failing. Everything else runs on synthetic fixtures.
+        run: python -m pytest -q
+
+      - name: Confirm the CLIs are importable and self-describing
+        run: |
+          python -m stresspredict.ingest --help
+          python -m stresspredict.evaluate --help
+          python -m stresspredict.train --help
+          python -m stresspredict.predict --help

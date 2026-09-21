@@ -1,0 +1,11 @@
+# Pinned for reproducibility. Regenerate with:
+#   python -m pip install -r requirements.in && python -m pip freeze
+numpy==2.5.3
+scipy==1.18.1
+scikit-learn==1.9.1
+# pandas is pinned to 3.0.5 deliberately: 3.0.6 wheels are blocked by Windows
+# Application Control on the development machine (unsigned/no-reputation binary).
+# 3.0.5 is functionally equivalent for everything used here.
+pandas==3.0.5
+joblib==1.6.0
+matplotlib==3.11.2

@@ -1,0 +1,22 @@
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.ipynb_checkpoints/
+*.egg-info/
+build/
+dist/
+
+# Data: raw and processed are reproducible from the documented DOIs, never committed.
+data/raw/
+data/processed/
+# data/external/ IS committed (small, vendored with provenance) - see data/README.md
+
+# Model artifacts are reproducible from a seed; only reports/ is committed.
+artifacts/
+
+# Per-run console logs from parallel evaluation invocations.
+reports/.log_*
+reports/.done_*
+reports/.err_*
