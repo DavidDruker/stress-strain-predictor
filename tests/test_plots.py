@@ -35,8 +35,13 @@ def _bundle(protocols: tuple[str, ...]) -> dict:
         return {
             "protocol": p, "protocol_is_leaky": p == "random_kfold",
             "models": {"hist_gbm": {
-                "landmarks": {t: {"unit": "MPa", "full": {"n": 60, "mae": 90.0}}
-                              for t in ("yield_strength", "tensile_strength", "elongation")},
+                "landmarks": {t: {
+                    "unit": "MPa", "full": {"n": 60, "mae": 90.0},
+                    "by_measurement_kind": {
+                        "measured": {"n": 30, "mae": 140.0},
+                        "spec_minimum": {"n": 30, "mae": 70.0},
+                    },
+                } for t in ("yield_strength", "tensile_strength", "elongation")},
                 "components": {"tensile_strength": {
                     "per_fold": [{"mae": 80.0, "n": 10}, {"mae": 120.0, "n": 12}],
                     "fold_labels": ["carbon", "stainless"],
@@ -92,3 +97,35 @@ def test_banana_plot_needs_both_uts_and_elongation(tmp_path: Path):
     p = plots.banana_plot(_oof(), "gkf_grade", "hist_gbm", tmp_path)
     assert p.exists()
     assert str(plots.banana_plot(_oof(), "nonexistent", "hist_gbm", tmp_path)) == "."
+
+
+def test_floor_plot_uses_measured_rows_not_all_rows(tmp_path: Path, monkeypatch):
+    """Bars and band must come from the same row stratum.
+
+    The floor is measured on measured rows only. Plotting the all-rows MAE
+    against it draws the models below a physical limit -- which reads as a
+    breakthrough and is actually a mismatched comparison, since the
+    specification-minimum rows making up the rest are far easier.
+    """
+    captured: list = []
+    real_bar = plots.plt.Axes.bar
+
+    def spy(self, x, height, *a, **k):
+        captured.append(list(height))
+        return real_bar(self, x, height, *a, **k)
+
+    monkeypatch.setattr(plots.plt.Axes, "bar", spy)
+    plots.floor_plot(_bundle(("gkf_grade",)), _manifest(), "yield_strength", tmp_path)
+
+    assert captured, "no bars were drawn"
+    # 140.0 is the measured-rows MAE in the fixture; 90.0 is the all-rows one.
+    assert captured[0] == [140.0], f"floor plot drew {captured[0]}, expected measured-rows MAE"
+
+
+def test_floor_plot_skips_when_the_stratified_metric_is_absent(tmp_path: Path):
+    """An older report without by_measurement_kind must skip, not fall back."""
+    bundle = _bundle(("gkf_grade",))
+    for lm in bundle["protocols"]["gkf_grade"]["models"]["hist_gbm"]["landmarks"].values():
+        lm.pop("by_measurement_kind")
+    assert str(plots.floor_plot(bundle, _manifest(), "yield_strength", tmp_path)) == "."
+    assert list(tmp_path.iterdir()) == []

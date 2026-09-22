@@ -132,6 +132,12 @@ def floor_plot(bundle: dict, manifest: dict, target: str, out: Path) -> Path:
     The shaded band is the within-composition spread on measured rows: the error
     a perfect composition-only model would still make, because the rows inside it
     differ by processing that the features cannot see.
+
+    The bars are the model's MAE on MEASURED ROWS ONLY, because that is what the
+    band is computed from. Plotting the all-rows MAE against a measured-only
+    floor draws the tree models below a physical limit -- which is not a
+    breakthrough, it is a mismatched comparison: the spec-minimum rows making up
+    the rest of the data are near-deterministic per grade and far easier.
     """
     protocol = splits.HEADLINE_PROTOCOL
     if protocol not in bundle["protocols"]:
@@ -140,7 +146,10 @@ def floor_plot(bundle: dict, manifest: dict, target: str, out: Path) -> Path:
     vals = []
     for model in models:
         lm = bundle["protocols"][protocol]["models"][model].get("landmarks", {})
-        vals.append(lm.get(target, {}).get("full", {}).get("mae", np.nan))
+        by_kind = lm.get(target, {}).get("by_measurement_kind", {})
+        vals.append(by_kind.get("measured", {}).get("mae", np.nan))
+    if not np.isfinite(vals).any():
+        return Path()
 
     floor = manifest["noise_floor"]["targets"][target]["measured_only"]
     lo, hi = floor.get("mae_floor_insample"), floor.get("mae_floor_loo")
@@ -158,8 +167,9 @@ def floor_plot(bundle: dict, manifest: dict, target: str, out: Path) -> Path:
         ax.text(len(models) - 0.45, hi, "  measured noise floor\n  (processing, not chemistry)",
                 va="bottom", ha="right", fontsize=8.5, color="#a33")
 
-    ax.set_ylabel(f"MAE -- {LABEL[target]}")
-    ax.set_title(f"{target}: model error vs the physical floor ({protocol})", fontsize=12)
+    ax.set_ylabel(f"MAE on measured rows -- {LABEL[target]}")
+    ax.set_title(f"{target}: model error vs the physical floor\n"
+                 f"({protocol}, measured rows only -- both bars and band)", fontsize=11)
     ax.set_xticks(range(len(models)))
     ax.set_xticklabels(models, rotation=12, ha="right")
     _style(ax)

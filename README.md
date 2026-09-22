@@ -122,6 +122,23 @@ them survive that shift.
 * **The data manifest balances**: 1,360 rows in, 1,359 out, 1 dropped
   (`yield_strength >= tensile_strength`), 15 values nulled, every rule documented.
 
+### Figures
+
+In [`reports/figures/`](reports/figures), regenerate with `python -m stresspredict.plots`.
+
+| Figure | What it shows |
+|---|---|
+| `floor_<target>.png` | model error against the measured noise floor — bars and band both on measured rows, so the comparison is like-for-like |
+| `leak_<target>.png` | random K-fold vs grade-grouped, with the dummy as the control |
+| `parity_gkf_grade_hist_gbm.png` | out-of-fold parity, coloured by measurement kind |
+| `lofo_hist_gbm_*.png` | per-family error, worst family first |
+| `banana_gkf_grade_hist_gbm.png` | predicted vs measured strength–ductility space |
+
+The parity plot is worth reading for what it admits: predictions saturate near
+1,000 MPa while measured values run to 1,900, and identical compositions produce
+visible horizontal bands of identical predictions. That is the grade-prior
+behaviour of a composition-only model, drawn rather than described.
+
 
 
 ## What makes this different from the usual version of this project
