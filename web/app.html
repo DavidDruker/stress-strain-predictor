@@ -6,7 +6,9 @@
 <style>
   :root {
     --ground: #e8eaee;
-    --stage: #dfe3e8;
+    --stage: #e4e8ec;
+    --stage-hi: #fbfcfd;
+    --stage-lo: #b6bec6;
     --surface: #ffffff;
     --surface-2: #f4f5f7;
     --ink: #14181b;
@@ -25,11 +27,12 @@
     --f-body: "Barlow", system-ui, -apple-system, sans-serif;
     --f-mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
     --bar: 306px;
-    --hud: 156px;
+    --hud: 142px;
   }
   @media (prefers-color-scheme: dark) {
     :root:not([data-theme="light"]) {
-      --ground: #0c0f11; --stage: #12161a; --surface: #161a1e; --surface-2: #1d2226;
+      --ground: #0c0f11; --stage: #15191e; --stage-hi: #262d34; --stage-lo: #050607;
+      --surface: #161a1e; --surface-2: #1d2226;
       --ink: #e7ebee; --ink-2: #b9c2c9; --muted: #8a949c;
       --line: #2a3238; --line-2: #222a30;
       --accent: #ff8c42; --steel: #8bb0d2; --warn: #d9a33f;
@@ -39,7 +42,8 @@
     }
   }
   :root[data-theme="dark"] {
-    --ground: #0c0f11; --stage: #12161a; --surface: #161a1e; --surface-2: #1d2226;
+    --ground: #0c0f11; --stage: #15191e; --stage-hi: #262d34; --stage-lo: #050607;
+    --surface: #161a1e; --surface-2: #1d2226;
     --ink: #e7ebee; --ink-2: #b9c2c9; --muted: #8a949c;
     --line: #2a3238; --line-2: #222a30;
     --accent: #ff8c42; --steel: #8bb0d2; --warn: #d9a33f;
@@ -60,12 +64,25 @@
      300x150, not to the inset box, so positioning it directly left it at 300x150
      however many insets were set. The wrapper owns the geometry; the canvas just
      fills it. */
+  /* A lit room rather than a flat fill: light in the middle where the specimen
+     sits, falling off toward the corners, with a soft inset shadow standing in
+     for where the walls meet. */
   .stagewrap {
     position: fixed; top: 0; right: 0; bottom: var(--hud); left: var(--bar);
-    z-index: 0; background: var(--stage);
+    z-index: 0; overflow: hidden;
+    background:
+      radial-gradient(115% 88% at 50% 32%,
+        var(--stage-hi) 0%, var(--stage) 42%, var(--stage-lo) 100%);
+  }
+  .stagewrap::after {
+    content: ""; position: absolute; inset: 0; pointer-events: none;
+    box-shadow: inset 0 0 150px 30px rgba(18, 26, 34, .20),
+                inset 0 -70px 120px -60px rgba(18, 26, 34, .42),
+                inset 0 60px 110px -70px rgba(18, 26, 34, .26);
   }
   #viewport {
-    display: block; width: 100%; height: 100%; background: var(--stage);
+    display: block; width: 100%; height: 100%; background: transparent;
+    position: relative; z-index: 1;
     touch-action: none; cursor: grab;
   }
   #viewport:active { cursor: grabbing; }
@@ -107,12 +124,11 @@
   .tile.key .v { color: var(--accent); }
   .out.pending .tile .v, .out.pending .verdict { color: var(--muted); opacity: .4; }
   .out.flash .tile { background: var(--surface-2); }
-  .live { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; background: var(--line-2); border-top: 1px solid var(--line-2); }
-  .live div { background: var(--surface); padding: 4px 12px; min-width: 0; display: flex; align-items: baseline; gap: 6px; }
-  .live .v { font-family: var(--f-mono); font-size: 13px; font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; }
-  .live .v u { text-decoration: none; font-size: .64em; font-weight: 500; color: var(--muted); margin-left: 2px; }
-  .strengths { padding: 4px 12px; border-top: 1px solid var(--line-2); font-family: var(--f-mono); font-size: 10px; color: var(--muted); display: flex; gap: 3px 14px; background: var(--surface); overflow: hidden; white-space: nowrap; }
-  .strengths b { color: var(--ink-2); font-weight: 500; }
+  /* What the model predicted, held steady -- not a ticker that changes while
+     the animation runs. */
+  .predicted { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px; background: var(--line-2); border-top: 1px solid var(--line-2); }
+  .predicted div { background: var(--surface); padding: 5px 12px; min-width: 0; }
+  .predicted .v { font-family: var(--f-mono); font-size: 13px; font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; color: var(--ink-2); }
 
   /* ---- sidebar controls ---- */
   .modes { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; }
@@ -218,8 +234,6 @@
   <button class="run" id="run" type="button">Pull to failure</button>
   <div class="guard" id="guard"></div>
   <div class="grow"></div>
-  <div class="foot">Chemistry-only, 1,359 heats &middot;
-    <a href="https://github.com/DavidDruker/stress-strain-predictor">model &amp; limits</a></div>
 </aside>
 
 <div class="stagewrap">
@@ -238,17 +252,11 @@
         <span class="phase" id="phase">At rest</span>
       </div>
       <div class="tiles" id="tiles" aria-live="polite"></div>
-      <div class="live">
-        <div><div class="lab">Load</div><div class="v" id="live-force">0.0<u>kN</u></div></div>
-        <div><div class="lab">Extension</div><div class="v" id="live-ext">0.00<u>mm</u></div></div>
-        <div><div class="lab">Length</div><div class="v" id="live-len">50.00<u>mm</u></div></div>
-      </div>
-      <div class="strengths">
-        <span>Yield <b id="s-ys">&mdash;</b></span>
-        <span>Tensile <b id="s-uts">&mdash;</b></span>
-        <span>Elongation <b id="s-el">&mdash;</b></span>
-        <span>Neck <b id="s-ra">&mdash;</b></span>
-        <span class="hint lab" style="margin-left:auto">Drag or arrows to rotate &middot; scroll to zoom</span>
+      <div class="predicted">
+        <div><div class="lab">Yield strength</div><div class="v" id="s-ys">&mdash;</div></div>
+        <div><div class="lab">Tensile strength</div><div class="v" id="s-uts">&mdash;</div></div>
+        <div><div class="lab">Elongation</div><div class="v" id="s-el">&mdash;</div></div>
+        <div><div class="lab">Neck contraction</div><div class="v" id="s-ra">&mdash;</div></div>
       </div>
     </div>
   </div>
@@ -376,8 +384,7 @@
   var el = {};
   ["presets", "els", "run", "guard", "curve", "viewport", "phase", "results", "tiles",
    "verdict", "area", "gauge", "target", "load-row", "mode-pull", "mode-load",
-   "u-area", "u-len", "u-force", "live-force", "live-ext", "live-len",
-   "s-ys", "s-uts", "s-el", "s-ra"]
+   "u-area", "u-len", "u-force", "s-ys", "s-uts", "s-el", "s-ra"]
     .forEach(function (id) { el[id] = document.getElementById(id); });
 
   /* ---- build the sidebar ---- */
@@ -624,7 +631,8 @@
       cc.fillText(fmt(xv, xv < 10 ? 1 : 0), px, h - padB + 5);
     }
     cc.textAlign = "left"; cc.textBaseline = "top"; cc.fillText(LABEL[U.force], 5, 5);
-    cc.textAlign = "right"; cc.fillText(LABEL[U.len], w - padR, h - 10);
+    // Above the axis, not in the tick row it used to overlap.
+    cc.textAlign = "right"; cc.textBaseline = "bottom"; cc.fillText(LABEL[U.len], w - padR, h - padB - 3);
 
     cc.strokeStyle = css("--muted"); cc.beginPath();
     cc.moveTo(padL, padT); cc.lineTo(padL, h - padB); cc.lineTo(w - padR, h - padB); cc.stroke();
@@ -664,7 +672,7 @@
 
   /* ================= 3D specimen ================= */
   var renderer, scene, camera, barA, barB, gripL, gripR;
-  var GH = 1.2, ENDL = 0.62, RINGS = 56, SEG = 30;
+  var GH = 1.2, ENDL = 0.52, RINGS = 56, SEG = 30;
   var orbit = { az: 0.42, pol: 1.16, dist: 8.4 }, userZoomed = false;
 
   /* The default view has to show the break, which is the point of the page.
@@ -683,26 +691,71 @@
   function initThree() {
     renderer = new THREE.WebGLRenderer({ canvas: el.viewport, antialias: true, alpha: true });
     renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5));
+    renderer.outputEncoding = THREE.sRGBEncoding;
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 0.82;
     scene = new THREE.Scene();
     camera = new THREE.PerspectiveCamera(30, 2, 0.1, 100);
-    scene.add(new THREE.HemisphereLight(0xdfe8f2, 0x2b3238, 0.9));
-    var key = new THREE.DirectionalLight(0xffffff, 0.95); key.position.set(3, 5, 4); scene.add(key);
-    var rim = new THREE.DirectionalLight(0xffc9a0, 0.45); rim.position.set(-4, 1.5, -3); scene.add(rim);
-    var steel = new THREE.MeshStandardMaterial({ color: 0x9aa6b0, metalness: 0.85, roughness: 0.34 });
-    var grip = new THREE.MeshStandardMaterial({ color: 0x4a545c, metalness: 0.55, roughness: 0.65 });
+    /* A PBR metal reflects its surroundings and almost nothing else, so
+       metalness 0.85 with no environment renders near-black however many lights
+       are added -- which is exactly what it was doing. Build a small equirect
+       gradient (bright ceiling, mid wall, darker floor), run it through
+       PMREMGenerator, and hand it to the scene so the steel has a room to
+       reflect. */
+    scene.environment = roomEnvironment();
+
+    scene.add(new THREE.HemisphereLight(0xdfe8f2, 0x333a41, 0.25));
+    var key = new THREE.DirectionalLight(0xffffff, 0.62); key.position.set(3, 5, 4); scene.add(key);
+    var fill = new THREE.DirectionalLight(0xc9d9ea, 0.22); fill.position.set(-3, 2, 3); scene.add(fill);
+    var rim = new THREE.DirectionalLight(0xffcda0, 0.34); rim.position.set(-4, 1.5, -4); scene.add(rim);
+
+    var steel = new THREE.MeshStandardMaterial({
+      color: 0x8e97a1, metalness: 0.80, roughness: 0.32, envMapIntensity: 0.78 });
+    var grip = new THREE.MeshStandardMaterial({
+      color: 0x4e565e, metalness: 0.30, roughness: 0.68, envMapIntensity: 0.45 });
     barA = new THREE.Mesh(makeTube(), steel);
     barB = new THREE.Mesh(makeTube(), steel);
     scene.add(barA, barB);
-    var jaw = new THREE.BoxGeometry(0.3, 0.8, 0.8);
+    var jaw = new THREE.BoxGeometry(0.26, 0.62, 0.62);
     gripL = new THREE.Mesh(jaw, grip); gripR = new THREE.Mesh(jaw, grip);
     scene.add(gripL, gripR);
     bindOrbit(); updateCamera(); resize();
     window.addEventListener("resize", function () { resize(); drawCurve(prog, null); });
   }
 
+  /* A vertical gradient stands in for a studio: bright above, mid at the
+     horizon, dark below. Cheap, and enough for the steel to read as steel. */
+  function roomEnvironment() {
+    var c = document.createElement("canvas");
+    c.width = 16; c.height = 256;
+    var g = c.getContext("2d");
+    var grad = g.createLinearGradient(0, 0, 0, 256);
+    grad.addColorStop(0.00, "#d7e0e9");
+    grad.addColorStop(0.34, "#aab6c1");
+    grad.addColorStop(0.50, "#7c8792");
+    grad.addColorStop(0.68, "#464e56");
+    grad.addColorStop(1.00, "#1a1e22");
+    g.fillStyle = grad; g.fillRect(0, 0, 16, 256);
+
+    var tex = new THREE.CanvasTexture(c);
+    tex.mapping = THREE.EquirectangularReflectionMapping;
+    var pmrem = new THREE.PMREMGenerator(renderer);
+    pmrem.compileEquirectangularShader();
+    var env = pmrem.fromEquirectangular(tex).texture;
+    pmrem.dispose(); tex.dispose();
+    return env;
+  }
+
+  /* The end caps get their OWN rim vertices rather than sharing the tube's.
+     Sharing them let computeVertexNormals average the cap's axial normal into
+     the tube's radial one, which drew a bright ring around the middle of the
+     gauge where the two halves meet. */
+  var NEAR_RIM = RINGS * SEG, FAR_RIM = NEAR_RIM + SEG;
+  var CAP_NEAR = FAR_RIM + SEG, CAP_FAR = CAP_NEAR + 1;
+
   function makeTube() {
     var g = new THREE.BufferGeometry();
-    g.setAttribute("position", new THREE.BufferAttribute(new Float32Array((RINGS * SEG + 2) * 3), 3));
+    g.setAttribute("position", new THREE.BufferAttribute(new Float32Array((CAP_FAR + 1) * 3), 3));
     var idx = [], i, j;
     for (i = 0; i < RINGS - 1; i++) {
       for (j = 0; j < SEG; j++) {
@@ -711,10 +764,9 @@
         idx.push(a, c, b, b, c, d);
       }
     }
-    var capNear = RINGS * SEG, capFar = capNear + 1;
     for (j = 0; j < SEG; j++) {
-      idx.push(capNear, j, (j + 1) % SEG);
-      idx.push(capFar, (RINGS - 1) * SEG + (j + 1) % SEG, (RINGS - 1) * SEG + j);
+      idx.push(CAP_NEAR, NEAR_RIM + j, NEAR_RIM + (j + 1) % SEG);
+      idx.push(CAP_FAR, FAR_RIM + (j + 1) % SEG, FAR_RIM + j);
     }
     g.setIndex(idx);
     return g;
@@ -726,20 +778,20 @@
   /* Uniform thinning until maximum load; past it the neck takes over, about 1.4
      diameters wide -- set by the current diameter, not the gauge length. */
   function profileAt(t, uniform, neck, gaugeHalf, r0, rNeckMin) {
-    var rU = r0 / Math.sqrt(1 + Math.max(uniform, 0)), rG = r0 * 1.85, y, r;
-    if (t <= 0.72) {
-      y = t / 0.72 * gaugeHalf;
+    var rU = r0 / Math.sqrt(1 + Math.max(uniform, 0)), rG = r0 * 1.5, y, r;
+    if (t <= 0.80) {
+      y = t / 0.80 * gaugeHalf;
       if (neck > 0) {
         var width = Math.max(1.4 * rU, gaugeHalf * 0.10);
         r = rU - (rU - rNeckMin) * neck * Math.exp(-Math.pow(y / width, 2));
       } else r = rU;
-    } else if (t <= 0.86) {
-      var u = (t - 0.72) / 0.14;
-      y = gaugeHalf + u * ENDL * 0.45;
+    } else if (t <= 0.90) {
+      var u = (t - 0.80) / 0.10;
+      y = gaugeHalf + u * ENDL * 0.55;
       r = rU + (rG - rU) * (u * u * (3 - 2 * u));
     } else {
-      var v = (t - 0.86) / 0.14;
-      y = gaugeHalf + ENDL * 0.45 + v * ENDL * 0.55;
+      var v = (t - 0.90) / 0.10;
+      y = gaugeHalf + ENDL * 0.55 + v * ENDL * 0.45;
       r = rG;
     }
     return { y: y, r: Math.max(r, 0.002) };
@@ -758,6 +810,10 @@
       if (capShift !== 0 && i === 0) x += capShift * 0.22;   // shear lip at the rim
       for (j = 0; j < SEG; j++) { arr[k++] = x; arr[k++] = pr.r * COS[j]; arr[k++] = pr.r * SIN[j]; }
     }
+    // Duplicated rims, positioned with the rings they shadow.
+    var nearX = sign * first.y + (capShift !== 0 ? capShift * 0.22 : 0);
+    for (j = 0; j < SEG; j++) { arr[k++] = nearX; arr[k++] = first.r * COS[j]; arr[k++] = first.r * SIN[j]; }
+    for (j = 0; j < SEG; j++) { arr[k++] = sign * last.y; arr[k++] = last.r * COS[j]; arr[k++] = last.r * SIN[j]; }
     arr[k++] = sign * first.y + capShift; arr[k++] = 0; arr[k++] = 0;
     arr[k++] = sign * last.y; arr[k++] = 0; arr[k++] = 0;
     pos.needsUpdate = true;
@@ -829,12 +885,7 @@
   }
   function render() { if (renderer) renderer.render(scene, camera); }
 
-  function liveReadout(f, ext) {
-    el["live-force"].innerHTML = force(f, true);
-    el["live-ext"].innerHTML = len(ext, true);
-    el["live-len"].innerHTML = len(S.gauge + ext, true);
-  }
-  function rest() { build(0, 0, 0, false); liveReadout(0, 0); el.phase.textContent = "At rest"; render(); }
+  function rest() { build(0, 0, 0, false); el.phase.textContent = "At rest"; render(); }
 
   /* ================= the test ================= */
   var prog = 1, busy = false;
@@ -850,7 +901,7 @@
     var c = S.curve, e = S.eng;
     if (reduced) {
       build(c.epsTotal * 2.2, 1, 0.34, true);
-      el.phase.textContent = "Fractured"; liveReadout(0, e.extBreak);
+      el.phase.textContent = "Fractured";
       drawCurve(1, null); render(); showResults();
       return;
     }
@@ -869,7 +920,6 @@
         neck = Math.pow((p.strain - c.epsUts) / Math.max(c.epsTotal - c.epsUts, 1e-9), 0.65);
       }
       build(uniform * 2.2, neck, 0, false);
-      liveReadout(p.y, p.x);
       el.phase.textContent = p.strain <= c.epsYield ? "Elastic"
         : p.strain <= c.epsUts ? "Work hardening" : "Necking";
       drawCurve(k, p); render(); prog = k;
@@ -885,7 +935,6 @@
   function snap() {
     var t0 = null, dur = 700, c = S.curve;
     el.phase.textContent = "Fractured";
-    liveReadout(0, S.eng.extBreak);
     showResults();
     el.results.classList.add("flash");
     setTimeout(function () { el.results.classList.remove("flash"); }, 520);
@@ -903,8 +952,8 @@
   function runLoad(reduced) {
     var o = loadOutcome(), c = S.curve, e = S.eng;
     if (reduced) {
-      if (o.broke) { build(c.epsUts * 2.2, 1, 0.34, true); el.phase.textContent = "Fractured"; liveReadout(0, e.extBreak); }
-      else { build(o.strain * 2.2, 0, 0, false); el.phase.textContent = "Holding"; liveReadout(o.peak, o.ext); }
+      if (o.broke) { build(c.epsUts * 2.2, 1, 0.34, true); el.phase.textContent = "Fractured"; }
+      else { build(o.strain * 2.2, 0, 0, false); el.phase.textContent = "Holding"; }
       drawCurve(1, null); render(); showResults(o);
       return;
     }
@@ -921,7 +970,6 @@
         if (pts[i].y <= F) hit = pts[i]; else break;
       }
       build(Math.min(hit.strain, c.epsUts) * 2.2, 0, 0, false);
-      liveReadout(F, hit.x);
       el.phase.textContent = F < e.yieldForce ? "Elastic" : "Yielding";
       drawCurve(Math.min(1, hit.strain / c.epsTotal), { x: hit.x, y: F });
       render();
@@ -946,7 +994,6 @@
       var k = Math.max(0, Math.min(1, (now - t0) / dur)), ease = 1 - Math.pow(1 - k, 3);
       var strainNow = o.strain - (o.strain - o.permanent / S.gauge) * ease;
       build(strainNow * 2.2, 0, 0, false);
-      liveReadout(o.peak * (1 - ease), strainNow * S.gauge);
       render();
       if (k < 1) requestAnimationFrame(safeFrame);
       else { el.phase.textContent = o.yielded ? "Permanently stretched" : "Unchanged"; finish(); }
