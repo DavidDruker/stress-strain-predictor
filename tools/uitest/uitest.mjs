@@ -310,8 +310,13 @@ async function checkInvariantSweep(page) {
         inp.value = Math.random() < 0.25 ? "" : rnd(0, 30).toFixed(3);
       });
       inputs[0].dispatchEvent(new Event("input", { bubbles: true }));
-      const num = (id) => parseFloat((document.getElementById(id).textContent || "")
-        .replace(/[^\d.,-]/g, "").replace(/,/g, ""));
+      // Null-guard: a renamed or removed element should surface as a finding,
+      // not abort the whole run inside page.evaluate.
+      const num = (id) => {
+        const n = document.getElementById(id);
+        if (!n) return NaN;
+        return parseFloat((n.textContent || "").replace(/[^\d.,-]/g, "").replace(/,/g, ""));
+      };
       const ys = num("s-ys"), uts = num("s-uts");
       out.n += 1;
       if (!Number.isFinite(ys) || !Number.isFinite(uts)) out.nonFinite += 1;
@@ -521,6 +526,40 @@ async function checkDegradesWithoutThree(browser, url) {
   await page.close();
 }
 
+async function checkSidebarFits(browser, url) {
+  /* The sidebar is meant to hold every control without scrolling. It is easy to
+     regress by one added row, and the failure is quiet: the last control simply
+     sits below the fold with nothing to indicate it. */
+  for (const [w, h] of [[1280, 900], [1440, 768], [1280, 700]]) {
+    const page = await newPage(browser, { width: w, height: h });
+    await load(page, url);
+    const m = await page.evaluate(() => {
+      const s = document.querySelector(".side");
+      const run = document.getElementById("run");
+      if (!s || !run) return null;
+      const sr = s.getBoundingClientRect(), rr = run.getBoundingClientRect();
+      return {
+        overflow: s.scrollHeight - s.clientHeight,
+        runBelowFold: rr.bottom > sr.bottom + 1,
+        runVisible: rr.width > 40 && rr.height > 10,
+      };
+    });
+    if (!m) {
+      fail("high", "sidebar", "sidebar or run button missing", { w, h }, "Check the sidebar markup.");
+    } else if (m.overflow > 1) {
+      fail("medium", "sidebar", `sidebar overflows by ${m.overflow}px at ${w}x${h}`, m,
+        "Tighten the sidebar so every control fits without scrolling, or let a single "
+        + "inner region scroll rather than the panel itself.");
+    } else if (m.runBelowFold || !m.runVisible) {
+      fail("high", "sidebar", `the run button is not reachable at ${w}x${h}`, m,
+        "The primary action must stay on screen at every supported height.");
+    } else {
+      ok("sidebar", `fits at ${w}x${h}`);
+    }
+    await page.close();
+  }
+}
+
 async function checkLoadMode(browser, url) {
   /* Applying a dead load has three honest outcomes, and the page must pick the
      right one: below yield it springs back, between yield and maximum it keeps a
@@ -655,11 +694,17 @@ async function main() {
     await checkResponsive(page, url);
     await checkThemes(page, url);
     await checkReducedMotion(page, url);
+    await checkSidebarFits(browser, url);
     await checkLoadMode(browser, url);
     await checkFirstClickOnSlowCpu(browser, url);
     await checkDegradesWithoutThree(browser, url);
   } finally {
-    await browser.close();
+    // Chrome's temp profile can stay locked on Windows (EBUSY on
+    // CrashpadMetrics-active.pma). Letting that throw here skips the report
+    // write below, so a clean run looks like a crash and the JSON silently
+    // stays stale from the previous run -- the most misleading failure a test
+    // harness can have.
+    try { await browser.close(); } catch (e) { console.error("(browser cleanup: " + e.message + ")"); }
   }
 
   const order = { critical: 0, high: 1, medium: 2, low: 3 };

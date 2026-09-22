@@ -5,204 +5,239 @@
 
 <style>
   :root {
-    --ground: #eceef1;
+    --ground: #e8eaee;
+    --stage: #dfe3e8;
     --surface: #ffffff;
-    --surface-2: #f5f6f8;
+    --surface-2: #f4f5f7;
     --ink: #14181b;
     --ink-2: #3c464e;
     --muted: #68727a;
-    --line: #d3d8dd;
-    --line-2: #e3e7ea;
+    --line: #d0d5da;
+    --line-2: #e2e6e9;
     --accent: #b8491a;
     --steel: #3d5a73;
     --warn: #8f5c10;
     --bad: #a32c2c;
     --good: #2c6a4c;
-    --shadow: 0 1px 2px rgba(20, 30, 40, .07), 0 6px 20px rgba(20, 30, 40, .05);
+    --panel-bg: rgba(255, 255, 255, .93);
+    --shadow: 0 1px 2px rgba(20, 30, 40, .08), 0 8px 26px rgba(20, 30, 40, .10);
     --f-display: "Barlow Condensed", "Arial Narrow", system-ui, sans-serif;
     --f-body: "Barlow", system-ui, -apple-system, sans-serif;
     --f-mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+    --bar: 306px;
   }
   @media (prefers-color-scheme: dark) {
     :root:not([data-theme="light"]) {
-      --ground: #0d1013; --surface: #161a1e; --surface-2: #1d2226;
+      --ground: #0c0f11; --stage: #12161a; --surface: #161a1e; --surface-2: #1d2226;
       --ink: #e7ebee; --ink-2: #b9c2c9; --muted: #8a949c;
       --line: #2a3238; --line-2: #222a30;
       --accent: #ff8c42; --steel: #8bb0d2; --warn: #d9a33f;
       --bad: #e4736b; --good: #63b98c;
-      --shadow: 0 1px 2px rgba(0,0,0,.4), 0 8px 24px rgba(0,0,0,.3);
+      --panel-bg: rgba(20, 24, 28, .93);
+      --shadow: 0 1px 2px rgba(0,0,0,.5), 0 10px 30px rgba(0,0,0,.42);
     }
   }
   :root[data-theme="dark"] {
-    --ground: #0d1013; --surface: #161a1e; --surface-2: #1d2226;
+    --ground: #0c0f11; --stage: #12161a; --surface: #161a1e; --surface-2: #1d2226;
     --ink: #e7ebee; --ink-2: #b9c2c9; --muted: #8a949c;
     --line: #2a3238; --line-2: #222a30;
     --accent: #ff8c42; --steel: #8bb0d2; --warn: #d9a33f;
     --bad: #e4736b; --good: #63b98c;
-    --shadow: 0 1px 2px rgba(0,0,0,.4), 0 8px 24px rgba(0,0,0,.3);
+    --panel-bg: rgba(20, 24, 28, .93);
+    --shadow: 0 1px 2px rgba(0,0,0,.5), 0 10px 30px rgba(0,0,0,.42);
   }
 
   * { box-sizing: border-box; }
-  body { background: var(--ground); color: var(--ink); font-family: var(--f-body); font-size: 15px; line-height: 1.5; margin: 0; }
-  .wrap { max-width: 1320px; margin: 0 auto; padding: 0 16px; padding-block: 20px 36px; }
+  html, body { height: 100%; }
+  body { background: var(--ground); color: var(--ink); font-family: var(--f-body); font-size: 15px; line-height: 1.45; margin: 0; }
+  .lab { font-family: var(--f-mono); font-size: 9.5px; letter-spacing: .13em; text-transform: uppercase; color: var(--muted); }
 
-  h1 { font-family: var(--f-display); font-size: clamp(24px, 3.4vw, 32px); font-weight: 700; text-transform: uppercase; letter-spacing: .015em; margin: 0 0 14px; line-height: 1; }
-  .panel { background: var(--surface); border: 1px solid var(--line); border-radius: 4px; box-shadow: var(--shadow); }
-  .lab { font-family: var(--f-mono); font-size: 10px; letter-spacing: .13em; text-transform: uppercase; color: var(--muted); }
-
-  .layout { display: grid; gap: 16px; grid-template-columns: 1fr; }
-  @media (min-width: 900px) {
-    .layout { grid-template-columns: 264px minmax(0, 1fr); align-items: start; }
-    .side { position: sticky; top: calc(env(safe-area-inset-top, 0px) + 14px); max-height: calc(100vh - 40px); overflow-y: auto; }
+  /* ================= desktop: the simulation IS the page ================= */
+  /* The canvas fills everything right of the sidebar and sits behind the HUD,
+     so the specimen is the background rather than a boxed-off widget. */
+  #viewport {
+    position: fixed; top: 0; right: 0; bottom: 0; left: var(--bar);
+    width: auto; height: auto; display: block; background: var(--stage);
+    touch-action: none; cursor: grab; z-index: 0;
   }
-  .side { min-width: 0; }
-  .sim { min-width: 0; }
+  #viewport:active { cursor: grabbing; }
+  #viewport:focus-visible { outline: 2px solid var(--accent); outline-offset: -3px; }
 
-  /* ---- sidebar ---- */
-  .side .body { padding: 12px; }
-  .side .body + .body { border-top: 1px solid var(--line-2); }
+  .side {
+    position: fixed; top: 0; left: 0; bottom: 0; width: var(--bar); z-index: 3;
+    background: var(--surface); border-right: 1px solid var(--line);
+    display: flex; flex-direction: column; overflow: hidden;
+    padding: calc(env(safe-area-inset-top, 0px) + 12px) 12px calc(env(safe-area-inset-bottom, 0px) + 12px);
+    gap: 9px;
+  }
+  .side h1 { font-family: var(--f-display); font-size: 21px; font-weight: 700; text-transform: uppercase; letter-spacing: .02em; margin: 0; line-height: 1; }
+  .grow { flex: 1 1 auto; min-height: 0; }
 
-  .modes { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; margin-bottom: 11px; }
-  .mode { font-family: var(--f-display); font-size: 14px; font-weight: 600; padding: 7px 4px; border: 1px solid var(--line); background: var(--surface-2); color: var(--ink-2); border-radius: 3px; cursor: pointer; }
+  .hud { position: fixed; left: var(--bar); right: 0; bottom: 0; z-index: 2; padding: 12px; pointer-events: none; }
+  .hud > * { pointer-events: auto; }
+  .topbar { position: fixed; left: calc(var(--bar) + 12px); right: 12px; top: calc(env(safe-area-inset-top, 0px) + 12px); z-index: 2; display: flex; justify-content: space-between; gap: 10px; pointer-events: none; }
+  .card { background: var(--panel-bg); border: 1px solid var(--line); border-radius: 5px; box-shadow: var(--shadow); backdrop-filter: blur(7px); }
+
+  .phase { padding: 6px 11px; font-family: var(--f-mono); font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: var(--accent); }
+  .hint { padding: 6px 11px; color: var(--muted); }
+
+  .hud-inner { display: flex; gap: 10px; align-items: stretch; flex-wrap: wrap; }
+  .curve-card { flex: 1 1 320px; max-width: 440px; min-width: 0; padding: 6px 8px 2px; }
+  #curve { display: block; width: 100%; height: 132px; }
+  .out-card { flex: 2 1 380px; min-width: 0; display: flex; flex-direction: column; }
+  .verdict { padding: 8px 13px; border-bottom: 1px solid var(--line-2); font-family: var(--f-display); font-size: 17px; font-weight: 600; letter-spacing: .02em; text-transform: uppercase; }
+  .verdict.held { color: var(--good); } .verdict.yielded { color: var(--warn); } .verdict.broke { color: var(--bad); }
+  .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(118px, 1fr)); gap: 1px; background: var(--line-2); flex: 1 1 auto; }
+  .tile { background: var(--surface); padding: 8px 12px; min-width: 0; transition: background .45s ease; }
+  .tile .v { font-family: var(--f-mono); font-size: clamp(16px, 1.5vw, 21px); font-weight: 600; font-variant-numeric: tabular-nums; line-height: 1.22; margin-top: 2px; white-space: nowrap; }
+  .tile .v u { text-decoration: none; font-size: .5em; font-weight: 500; color: var(--muted); margin-left: 3px; }
+  .tile.key .v { color: var(--accent); }
+  .out.pending .tile .v, .out.pending .verdict { color: var(--muted); opacity: .4; }
+  .out.flash .tile { background: var(--surface-2); }
+  .live { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; background: var(--line-2); border-top: 1px solid var(--line-2); }
+  .live div { background: var(--surface); padding: 6px 12px; min-width: 0; }
+  .live .v { font-family: var(--f-mono); font-size: 14px; font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .live .v u { text-decoration: none; font-size: .64em; font-weight: 500; color: var(--muted); margin-left: 2px; }
+  .strengths { padding: 6px 12px; border-top: 1px solid var(--line-2); font-family: var(--f-mono); font-size: 10.5px; color: var(--muted); display: flex; flex-wrap: wrap; gap: 3px 14px; background: var(--surface); }
+  .strengths b { color: var(--ink-2); font-weight: 500; }
+
+  /* ---- sidebar controls ---- */
+  .modes { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; }
+  .mode { font-family: var(--f-display); font-size: 13.5px; font-weight: 600; padding: 6px 4px; border: 1px solid var(--line); background: var(--surface-2); color: var(--ink-2); border-radius: 3px; cursor: pointer; }
   .mode[aria-pressed="true"] { background: var(--steel); border-color: var(--steel); color: #fff; }
 
-  .presets { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 10px; }
-  .chip { font-family: var(--f-display); font-size: 13px; font-weight: 600; padding: 3px 8px; border: 1px solid var(--line); background: var(--surface-2); color: var(--ink-2); border-radius: 3px; cursor: pointer; }
+  .block > .lab { display: block; margin-bottom: 4px; }
+  .sub { font-family: var(--f-body); font-size: 11px; color: var(--muted); text-transform: none; letter-spacing: 0; margin-left: 6px; }
+  .presets { display: flex; flex-wrap: wrap; gap: 4px; }
+  .chip { font-family: var(--f-display); font-size: 13px; font-weight: 600; padding: 3px 8px; border: 1px dashed var(--line); background: var(--surface-2); color: var(--ink-2); border-radius: 3px; cursor: pointer; }
   .chip:hover { border-color: var(--steel); color: var(--ink); }
-  .chip[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .chip[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); border-style: solid; color: #fff; }
 
-  .els { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+  .els { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 5px; }
   .f { min-width: 0; }
-  .f label { display: block; font-family: var(--f-mono); font-size: 10px; color: var(--muted); }
-  .f input { width: 100%; font-family: var(--f-mono); font-size: 13px; font-variant-numeric: tabular-nums; padding: 5px 6px; border: 1px solid var(--line); border-radius: 3px; background: var(--surface-2); color: var(--ink); }
+  .f > label { display: flex; justify-content: space-between; align-items: baseline; gap: 3px; font-family: var(--f-mono); font-size: 9.5px; color: var(--muted); }
+  .f > label .rng { font-size: 8px; opacity: .85; letter-spacing: -.02em; }
+  .f input { width: 100%; font-family: var(--f-mono); font-size: 13px; font-variant-numeric: tabular-nums; padding: 4px 6px; border: 1px solid var(--line); border-radius: 3px; background: var(--surface-2); color: var(--ink); }
   .f input:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
-  .f .rng { display: block; font-family: var(--f-mono); font-size: 8.5px; color: var(--muted); letter-spacing: -.01em; margin-top: 1px; }
   .f.flag input { border-color: var(--warn); }
   .f.bad input { border-color: var(--bad); }
-  .geo { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-  .geo .f label, .load .f label { font-size: 9.5px; }
 
-  .run { width: 100%; margin-top: 11px; padding: 10px; cursor: pointer; font-family: var(--f-display); font-size: 17px; font-weight: 700; letter-spacing: .09em; text-transform: uppercase; background: var(--accent); color: #fff; border: none; border-radius: 3px; }
+  .withunit { display: grid; grid-template-columns: 1fr auto; gap: 4px; }
+  select { font-family: var(--f-mono); font-size: 12px; padding: 4px 3px; border: 1px solid var(--line); border-radius: 3px; background: var(--surface-2); color: var(--ink-2); cursor: pointer; }
+  select:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+  .geo { display: grid; gap: 6px; }
+
+  .run { width: 100%; padding: 9px; cursor: pointer; font-family: var(--f-display); font-size: 16px; font-weight: 700; letter-spacing: .09em; text-transform: uppercase; background: var(--accent); color: #fff; border: none; border-radius: 3px; }
   .run:hover { filter: brightness(1.08); }
   .run:disabled { opacity: .5; cursor: progress; }
   .run:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
 
-  .guard { margin-top: 9px; display: grid; gap: 4px; }
+  /* Only this can ever scroll, and only when a run of flags is unusually long. */
+  .guard { display: grid; gap: 4px; overflow-y: auto; max-height: 150px; }
   .guard:empty { display: none; }
-  .flagline { font-size: 12px; line-height: 1.3; color: var(--ink-2); border-left: 3px solid var(--warn); padding: 4px 0 4px 7px; background: var(--surface-2); overflow-wrap: anywhere; min-width: 0; }
+  .flagline { font-size: 11.5px; line-height: 1.28; color: var(--ink-2); border-left: 3px solid var(--warn); padding: 3px 0 3px 7px; background: var(--surface-2); overflow-wrap: anywhere; min-width: 0; }
   .flagline.bad { border-left-color: var(--bad); }
   .flagline b { font-family: var(--f-mono); color: var(--warn); }
   .flagline.bad b { color: var(--bad); }
+  .foot { font-size: 11px; color: var(--muted); }
+  .foot a { color: var(--steel); }
 
-  /* ---- simulation ---- */
-  .shell { position: relative; background: var(--surface-2); border-radius: 4px 4px 0 0; }
-  #viewport { display: block; width: 100%; height: clamp(300px, 52vh, 560px); touch-action: none; cursor: grab; border-radius: 4px 4px 0 0; }
-  #viewport:active { cursor: grabbing; }
-  #viewport:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
-  .hint { position: absolute; left: 12px; bottom: 9px; pointer-events: none; }
-  .phase { position: absolute; right: 12px; top: 10px; font-family: var(--f-mono); font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--accent); }
+  /* ================= narrow: back to normal flow ================= */
+  @media (max-width: 899px) {
+    html, body { height: auto; }
+    #viewport { position: static; width: 100%; height: 46vh; min-height: 260px; border-radius: 5px; }
+    .side { position: static; width: auto; border-right: none; border-bottom: 1px solid var(--line); }
+    .topbar { position: static; left: auto; right: auto; top: auto; padding: 8px 12px 0; }
+    .hud { position: static; left: auto; right: auto; padding: 10px 12px 20px; }
+    .stagewrap { padding: 0 12px; }
+    .curve-card { max-width: none; }
+  }
+  @media (min-width: 900px) { .stagewrap { display: contents; } }
 
-  .live { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; background: var(--line-2); border-top: 1px solid var(--line-2); }
-  .live div { background: var(--surface); padding: 9px 13px; min-width: 0; }
-  .live .v { font-family: var(--f-mono); font-size: clamp(16px, 2.3vw, 21px); font-weight: 600; font-variant-numeric: tabular-nums; line-height: 1.3; }
-  .live .v u { text-decoration: none; font-size: .58em; font-weight: 500; color: var(--muted); margin-left: 3px; }
-  #curve { display: block; width: 100%; height: 168px; border-top: 1px solid var(--line-2); }
-
-  /* ---- results ---- */
-  .results { margin-top: 14px; }
-  .verdict { padding: 11px 15px; border-bottom: 1px solid var(--line-2); font-family: var(--f-display); font-size: 19px; font-weight: 600; letter-spacing: .02em; text-transform: uppercase; }
-  .verdict.held { color: var(--good); }
-  .verdict.yielded { color: var(--warn); }
-  .verdict.broke { color: var(--bad); }
-  .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(146px, 1fr)); gap: 1px; background: var(--line-2); }
-  .tile { background: var(--surface); padding: 13px 15px; transition: background .45s ease; min-width: 0; }
-  .tile .v { font-family: var(--f-mono); font-size: clamp(21px, 2.9vw, 28px); font-weight: 600; font-variant-numeric: tabular-nums; line-height: 1.2; margin-top: 3px; }
-  .tile .v u { text-decoration: none; font-size: .46em; font-weight: 500; color: var(--muted); margin-left: 4px; }
-  .tile.key .v { color: var(--accent); }
-  .results.pending .tile .v, .results.pending .verdict { color: var(--muted); opacity: .4; }
-  .results.flash .tile { background: var(--surface-2); }
-  .strengths { padding: 10px 15px; border-top: 1px solid var(--line-2); font-family: var(--f-mono); font-size: 12px; color: var(--muted); display: flex; flex-wrap: wrap; gap: 5px 18px; }
-  .strengths b { color: var(--ink-2); font-weight: 500; }
-
-  footer { margin-top: 16px; font-size: 12.5px; color: var(--muted); }
-  footer a { color: var(--steel); }
   @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
 </style>
 
-<div class="wrap">
+<aside class="side">
   <h1>Tensile Test Bench</h1>
 
-  <div class="layout">
-    <aside class="side panel">
-      <div class="body">
-        <div class="modes">
-          <button type="button" class="mode" id="mode-pull" aria-pressed="true">Pull to failure</button>
-          <button type="button" class="mode" id="mode-load" aria-pressed="false">Apply a load</button>
-        </div>
-        <div class="lab" style="margin-bottom:6px">Composition &mdash; wt %</div>
-        <div class="presets" id="presets"></div>
-        <div class="els" id="els"></div>
-      </div>
-
-      <div class="body">
-        <div class="lab" style="margin-bottom:6px">Specimen</div>
-        <div class="geo">
-          <div class="f">
-            <label for="area">Cross-section mm&sup2;</label>
-            <input id="area" type="number" min="0.1" max="100000" step="1" value="78.5">
-          </div>
-          <div class="f">
-            <label for="gauge">Length mm</label>
-            <input id="gauge" type="number" min="1" max="100000" step="5" value="50">
-          </div>
-        </div>
-        <div class="load" id="load-row" hidden style="margin-top:8px">
-          <div class="f">
-            <label for="target">Load to apply &mdash; kN</label>
-            <input id="target" type="number" min="0.1" max="1000000" step="1" value="45">
-          </div>
-        </div>
-        <button class="run" id="run" type="button">Pull to failure</button>
-        <div class="guard" id="guard"></div>
-      </div>
-    </aside>
-
-    <section class="sim">
-      <div class="panel">
-        <div class="shell">
-          <canvas id="viewport" tabindex="0" role="img"
-                  aria-label="3D view of the test specimen being pulled"></canvas>
-          <span class="lab hint">Drag or arrow keys to rotate &middot; scroll to zoom</span>
-          <span class="phase" id="phase">At rest</span>
-        </div>
-        <div class="live">
-          <div><div class="lab">Load</div><div class="v" id="live-force">0.0<u>kN</u></div></div>
-          <div><div class="lab">Extension</div><div class="v" id="live-ext">0.00<u>mm</u></div></div>
-          <div><div class="lab">Length</div><div class="v" id="live-len">50.00<u>mm</u></div></div>
-        </div>
-        <canvas id="curve" role="img"
-                aria-label="Load-extension curve from zero load to fracture"></canvas>
-      </div>
-
-      <div class="results" id="results" aria-live="polite">
-        <div class="panel">
-          <div class="verdict" id="verdict">&mdash;</div>
-          <div class="tiles" id="tiles"></div>
-          <div class="strengths">
-            <span>Yield strength <b id="s-ys">&mdash;</b></span>
-            <span>Tensile strength <b id="s-uts">&mdash;</b></span>
-            <span>Elongation at break <b id="s-el">&mdash;</b></span>
-            <span>Neck contraction <b id="s-ra">&mdash;</b></span>
-          </div>
-        </div>
-      </div>
-    </section>
+  <div class="modes">
+    <button type="button" class="mode" id="mode-pull" aria-pressed="true">Pull to failure</button>
+    <button type="button" class="mode" id="mode-load" aria-pressed="false">Apply a load</button>
   </div>
 
-  <footer>
-    Chemistry-only prediction from 1,359 heats &middot;
-    <a href="https://github.com/DavidDruker/stress-strain-predictor">model, evaluation and limits</a>
-  </footer>
+  <div class="block">
+    <span class="lab">Presets <span class="sub">example chemistries &mdash; edit freely</span></span>
+    <div class="presets" id="presets"></div>
+  </div>
+
+  <div class="block">
+    <span class="lab">Composition &mdash; wt % <span class="sub">range the model has seen</span></span>
+    <div class="els" id="els"></div>
+  </div>
+
+  <div class="block geo">
+    <span class="lab">Specimen</span>
+    <div class="f">
+      <label for="area">Cross-section</label>
+      <div class="withunit">
+        <input id="area" type="number" min="0" step="1" value="78.5">
+        <select id="u-area" aria-label="Cross-section unit"></select>
+      </div>
+    </div>
+    <div class="f">
+      <label for="gauge">Length</label>
+      <div class="withunit">
+        <input id="gauge" type="number" min="0" step="5" value="50">
+        <select id="u-len" aria-label="Length unit"></select>
+      </div>
+    </div>
+    <div class="f" id="load-row" hidden>
+      <label for="target">Load to apply</label>
+      <div class="withunit">
+        <input id="target" type="number" min="0" step="1" value="45">
+        <select id="u-force" aria-label="Load unit"></select>
+      </div>
+    </div>
+  </div>
+
+  <button class="run" id="run" type="button">Pull to failure</button>
+  <div class="guard" id="guard"></div>
+  <div class="grow"></div>
+  <div class="foot">Chemistry-only, 1,359 heats &middot;
+    <a href="https://github.com/DavidDruker/stress-strain-predictor">model &amp; limits</a></div>
+</aside>
+
+<div class="stagewrap">
+  <canvas id="viewport" tabindex="0" role="img"
+          aria-label="3D view of the test specimen being pulled"></canvas>
+</div>
+
+<div class="topbar">
+  <span class="card hint lab">Drag or arrows to rotate &middot; scroll to zoom</span>
+  <span class="card phase" id="phase">At rest</span>
+</div>
+
+<div class="hud">
+  <div class="hud-inner">
+    <div class="card curve-card">
+      <canvas id="curve" role="img" aria-label="Load-extension curve from zero load to fracture"></canvas>
+    </div>
+    <div class="card out-card out" id="results" aria-live="polite">
+      <div class="verdict" id="verdict">&mdash;</div>
+      <div class="tiles" id="tiles"></div>
+      <div class="live">
+        <div><div class="lab">Load</div><div class="v" id="live-force">0.0<u>kN</u></div></div>
+        <div><div class="lab">Extension</div><div class="v" id="live-ext">0.00<u>mm</u></div></div>
+        <div><div class="lab">Length</div><div class="v" id="live-len">50.00<u>mm</u></div></div>
+      </div>
+      <div class="strengths">
+        <span>Yield <b id="s-ys">&mdash;</b></span>
+        <span>Tensile <b id="s-uts">&mdash;</b></span>
+        <span>Elongation <b id="s-el">&mdash;</b></span>
+        <span>Neck contraction <b id="s-ra">&mdash;</b></span>
+      </div>
+    </div>
+  </div>
 </div>
 
 <script src="model.js"></script>
@@ -213,7 +248,26 @@
 
   var MODEL = window.SP_MODEL;
   var E_MODULUS = 205000;            // MPa; ~constant for steel, so never modelled
-  var STEEL_DENSITY = 7.85e-6;       // kg/mm^3
+
+  /* ================= units =================
+     Everything inside is mm, mm^2 and kN. Units are a presentation layer on the
+     way in and out, so no conversion factor can ever reach the model. */
+  var UNITS = {
+    area:  { "mm2": 1, "cm2": 100, "in2": 645.16 },
+    len:   { "mm": 1, "cm": 10, "m": 1000, "in": 25.4 },
+    force: { "kN": 1, "N": 0.001, "kgf": 0.00980665, "lbf": 0.004448222, "tonf": 9.80665 }
+  };
+  var LABEL = { mm2: "mm²", cm2: "cm²", in2: "in²",
+                mm: "mm", cm: "cm", m: "m", in: "in",
+                kN: "kN", N: "N", kgf: "kgf", lbf: "lbf", tonf: "tf" };
+  var U = { area: "mm2", len: "mm", force: "kN" };
+
+  var fmt = function (v, d) { return v.toLocaleString(undefined, { minimumFractionDigits: d, maximumFractionDigits: d }); };
+  function auto(v) { var a = Math.abs(v); return a >= 1000 ? 0 : a >= 100 ? 1 : a >= 1 ? 2 : 3; }
+  function inForce(kN) { return kN / UNITS.force[U.force]; }
+  function inLen(mm) { return mm / UNITS.len[U.len]; }
+  function force(kN, tag) { var v = inForce(kN); return fmt(v, auto(v)) + (tag ? "<u>" + LABEL[U.force] + "</u>" : " " + LABEL[U.force]); }
+  function len(mm, tag) { var v = inLen(mm); return fmt(v, auto(v)) + (tag ? "<u>" + LABEL[U.len] + "</u>" : " " + LABEL[U.len]); }
 
   /* ================= inference: evaluates the exported trees ================= */
   function buildFeatures(c) {
@@ -264,37 +318,27 @@
     return { ys: ys, uts: uts, el: comp("elongation", x) };
   }
 
-  /* ================= engineering quantities ================= */
+  /* ================= engineering ================= */
   function engineering(p, area, gauge) {
     var ext = (p.el / 100) * gauge;
     return {
       area: area, gauge: gauge,
-      yieldForce: p.ys * area / 1000,          // MPa = N/mm^2 -> kN
-      breakForce: p.uts * area / 1000,
-      extBreak: ext,
-      finalLength: gauge + ext,
-      stiffness: E_MODULUS * area / gauge / 1000,   // kN/mm
-      mass: area * gauge * STEEL_DENSITY,
-      /* How far the neck contracts before it parts. Reduction of area is NOT a
-         model output, but SteelBench reports it for 414 heats, and a least-
-         squares fit over those gives RA% = 0.47*EL% + 31.8 (r = 0.43). Using the
-         data's own relation keeps the animation honest rather than invented. */
+      yieldForce: p.ys * area / 1000, breakForce: p.uts * area / 1000,
+      extBreak: ext, finalLength: gauge + ext,
+      stiffness: E_MODULUS * area / gauge / 1000,
+      /* Reduction of area is not a model output, but SteelBench reports it for
+         414 heats; a fit over those gives RA% = 0.47*EL% + 31.8. Using the data's
+         own relation keeps the neck honest rather than invented. */
       reductionOfArea: Math.max(0.10, Math.min(0.70, (0.47 * p.el + 31.8) / 100))
     };
   }
 
-  /* Curve through the predicted landmarks. The three marked points are predicted;
-     the path between them is a Hollomon power law closed with the Considere
-     condition and pinned to those points. */
   function curveOf(p, eng) {
     var epsTotal = p.el / 100, epsYield = p.ys / E_MODULUS;
     var n = Math.max(0.02, Math.min(0.30, Math.log(p.uts / p.ys) / 2 + 0.05));
     var epsUts = Math.min(Math.max(n, epsYield * 2), Math.max(epsTotal * 0.75, epsYield * 1.001));
-    // Ordering must hold even for a brittle prediction, or the hardening branch
-    // is skipped and the drawn maximum lands somewhere the panel never reports.
     epsUts = Math.max(epsYield * 1.001, Math.min(epsUts, epsTotal * 0.999));
     var K = p.uts / Math.pow(Math.max(epsUts, 1e-9), n);
-
     var pts = [], N = 240;
     for (var i = 0; i < N; i++) {
       var e = (i / (N - 1)) * epsTotal, s;
@@ -313,29 +357,23 @@
     { n: "S355", c: { C: 0.18, Mn: 1.50, Si: 0.40, Cu: 0.30 } },
     { n: "304", c: { C: 0.06, Mn: 1.50, Si: 0.50, Cr: 18.5, Ni: 9.0 } }
   ];
-  var S = {
-    c: {}, invalid: [], preset: null, mode: "pull",
-    area: 78.5, gauge: 50, target: 45,
-    p: null, eng: null, curve: null
-  };
+  var S = { c: {}, invalid: [], preset: null, mode: "pull",
+            area: 78.5, gauge: 50, target: 45, p: null, eng: null, curve: null };
   var el = {};
   ["presets", "els", "run", "guard", "curve", "viewport", "phase", "results", "tiles",
    "verdict", "area", "gauge", "target", "load-row", "mode-pull", "mode-load",
-   "live-force", "live-ext", "live-len", "s-ys", "s-uts", "s-el", "s-ra"]
+   "u-area", "u-len", "u-force", "live-force", "live-ext", "live-len",
+   "s-ys", "s-uts", "s-el", "s-ra"]
     .forEach(function (id) { el[id] = document.getElementById(id); });
-
-  var fmt = function (v, d) { return v.toLocaleString(undefined, { minimumFractionDigits: d, maximumFractionDigits: d }); };
-  var unit = function (v, d, u) { return fmt(v, d) + "<u>" + u + "</u>"; };
-  var dp = function (v) { return v >= 1000 ? 0 : v >= 100 ? 1 : 2; };
 
   /* ---- build the sidebar ---- */
   MODEL.elements.forEach(function (name) {
     var r = MODEL.element_ranges[name];
     var w = document.createElement("div");
     w.className = "f";
-    w.innerHTML = '<label for="el-' + name + '">' + name + '</label>' +
-      '<input id="el-' + name + '" type="number" min="0" max="100" step="0.01" inputmode="decimal">' +
-      '<span class="rng">' + fmt(r.min, 2) + "–" + fmt(r.max, r.max >= 10 ? 0 : 2) + '</span>';
+    w.innerHTML = '<label for="el-' + name + '">' + name +
+      '<span class="rng">' + fmt(r.min, 2) + "–" + fmt(r.max, r.max >= 10 ? 0 : 2) + '</span></label>' +
+      '<input id="el-' + name + '" type="number" min="0" max="100" step="0.01" inputmode="decimal">';
     el.els.appendChild(w);
     el["el-" + name] = w.querySelector("input");
     el["w-" + name] = w;
@@ -348,16 +386,36 @@
     el.presets.appendChild(b); p.node = b;
   });
 
+  function fillUnits(sel, kind) {
+    Object.keys(UNITS[kind]).forEach(function (u) {
+      var o = document.createElement("option");
+      o.value = u; o.textContent = LABEL[u];
+      sel.appendChild(o);
+    });
+    sel.value = U[kind];
+    sel.addEventListener("change", function () {
+      // Keep the physical quantity and rewrite the number, so switching mm to in
+      // does not silently turn a 50 mm bar into a 50 inch one.
+      var input = kind === "area" ? el.area : kind === "len" ? el.gauge : el.target;
+      var old = UNITS[kind][U[kind]], now = UNITS[kind][sel.value];
+      var v = parseFloat(input.value);
+      if (isFinite(v)) input.value = String(Math.round(v * old / now * 1e6) / 1e6);
+      U[kind] = sel.value;
+      read(); recompute(); showResults(); rest();
+    });
+  }
+  fillUnits(el["u-area"], "area"); fillUnits(el["u-len"], "len"); fillUnits(el["u-force"], "force");
+
   function apply(p) {
     S.preset = p.n;
     MODEL.elements.forEach(function (n) { el["el-" + n].value = p.c[n] === undefined ? "" : p.c[n]; });
     read(); recompute(); showResults(); rest();
   }
 
-  function num(input, lo, hi, fallback) {
+  function num(input, kind, lo, fallback) {
     var v = parseFloat(input.value);
-    if (!isFinite(v) || v < lo || v > hi) return { v: fallback, bad: input.value.trim() !== "" };
-    return { v: v, bad: false };
+    if (!isFinite(v) || v <= 0) return { v: fallback, bad: input.value.trim() !== "" };
+    return { v: v * UNITS[kind][U[kind]], bad: false };
   }
 
   function read() {
@@ -367,16 +425,14 @@
       if (raw === "") return;
       var v = parseFloat(raw);
       // Physically impossible values are rejected here rather than passed to the
-      // model and labelled "extrapolation" -- -5 wt% carbon is not an uncertain
-      // input, it is not an input at all.
+      // model and labelled "extrapolation".
       if (!isFinite(v) || v < 0 || v > 100) { invalid.push({ el: n, v: raw }); return; }
       c[n] = v;
     });
     S.c = c; S.invalid = invalid;
-
-    var a = num(el.area, 0.1, 1e6, 78.5), g = num(el.gauge, 1, 1e6, 50), t = num(el.target, 0.01, 1e9, 45);
-    S.area = a.v; S.gauge = g.v; S.target = t.v;
-    S.badGeom = a.bad || g.bad || t.bad;
+    S.area = num(el.area, "area", 0, 78.5).v;
+    S.gauge = num(el.gauge, "len", 0, 50).v;
+    S.target = num(el.target, "force", 0, 45).v;
   }
 
   function guardLines() {
@@ -398,18 +454,10 @@
 
   /* ================= results ================= */
   var TILES = {
-    pull: [
-      { k: "Force at yield", id: "t-yf", key: true },
-      { k: "Force at break", id: "t-bf", key: true },
-      { k: "Stretch before break", id: "t-ext" },
-      { k: "Length at break", id: "t-len" }
-    ],
-    load: [
-      { k: "Load applied", id: "t-app", key: true },
-      { k: "Stretch under load", id: "t-ext" },
-      { k: "Permanent stretch", id: "t-perm", key: true },
-      { k: "Length after unloading", id: "t-len" }
-    ]
+    pull: [{ k: "Force at yield", id: "t-yf", key: true }, { k: "Force at break", id: "t-bf", key: true },
+           { k: "Stretch before break", id: "t-ext" }, { k: "Length at break", id: "t-len" }],
+    load: [{ k: "Load applied", id: "t-app", key: true }, { k: "Stretch under load", id: "t-ext" },
+           { k: "Permanent stretch", id: "t-perm", key: true }, { k: "Length after unloading", id: "t-len" }]
   };
   function buildTiles() {
     el.tiles.innerHTML = "";
@@ -440,9 +488,8 @@
     drawCurve(1, null);
   }
 
-  /* The outcome of loading to a target force. Under dead load the specimen is
-     unstable the instant the applied force reaches the maximum it can carry, so
-     that is the rupture criterion -- not the fracture strain. */
+  /* Under dead load the bar is unstable the instant the applied force reaches the
+     maximum it can carry, so that is the rupture criterion -- not fracture strain. */
   function loadOutcome() {
     var e = S.eng, F = S.target;
     if (F >= e.breakForce) return { broke: true, peak: e.breakForce };
@@ -451,39 +498,35 @@
       if (pts[i].strain > S.curve.epsUts) break;
       if (pts[i].y >= F) { hit = pts[i]; break; }
     }
-    var elastic = F / e.stiffness;
-    var permanent = Math.max(0, hit.x - elastic);
-    return {
-      broke: false, peak: F, ext: hit.x, strain: hit.strain,
-      permanent: permanent, yielded: F > e.yieldForce,
-      finalLength: e.gauge + permanent
-    };
+    var permanent = Math.max(0, hit.x - F / e.stiffness);
+    return { broke: false, peak: F, ext: hit.x, strain: hit.strain, permanent: permanent,
+             yielded: F > e.yieldForce, finalLength: e.gauge + permanent };
   }
 
   function showResults(outcome) {
     var e = S.eng, p = S.p;
     if (S.mode === "pull") {
-      el["t-yf"].innerHTML = unit(e.yieldForce, dp(e.yieldForce), "kN");
-      el["t-bf"].innerHTML = unit(e.breakForce, dp(e.breakForce), "kN");
-      el["t-ext"].innerHTML = unit(e.extBreak, 1, "mm");
-      el["t-len"].innerHTML = unit(e.finalLength, 1, "mm");
+      el["t-yf"].innerHTML = force(e.yieldForce, true);
+      el["t-bf"].innerHTML = force(e.breakForce, true);
+      el["t-ext"].innerHTML = len(e.extBreak, true);
+      el["t-len"].innerHTML = len(e.finalLength, true);
       el.verdict.className = "verdict broke";
-      el.verdict.textContent = "Ruptures at " + fmt(e.breakForce, dp(e.breakForce)) + " kN";
+      el.verdict.textContent = "Ruptures at " + force(e.breakForce, false);
     } else {
       var o = outcome || loadOutcome();
-      el["t-app"].innerHTML = unit(o.peak, dp(o.peak), "kN");
-      el["t-ext"].innerHTML = o.broke ? "&mdash;" : unit(o.ext, 2, "mm");
-      el["t-perm"].innerHTML = o.broke ? "&mdash;" : unit(o.permanent, 2, "mm");
-      el["t-len"].innerHTML = o.broke ? "&mdash;" : unit(o.finalLength, 2, "mm");
+      el["t-app"].innerHTML = force(o.peak, true);
+      el["t-ext"].innerHTML = o.broke ? "&mdash;" : len(o.ext, true);
+      el["t-perm"].innerHTML = o.broke ? "&mdash;" : len(o.permanent, true);
+      el["t-len"].innerHTML = o.broke ? "&mdash;" : len(o.finalLength, true);
       if (o.broke) {
         el.verdict.className = "verdict broke";
-        el.verdict.textContent = "Ruptures — it carries " + fmt(e.breakForce, dp(e.breakForce)) + " kN at most";
+        el.verdict.textContent = "Ruptures — it carries " + force(e.breakForce, false) + " at most";
       } else if (o.yielded) {
         el.verdict.className = "verdict yielded";
-        el.verdict.textContent = "Holds, but yields — " + fmt(o.permanent, 2) + " mm stays";
+        el.verdict.textContent = "Holds, but yields — " + len(o.permanent, false) + " stays";
       } else {
         el.verdict.className = "verdict held";
-        el.verdict.textContent = "Holds — springs back to " + fmt(e.gauge, 2) + " mm";
+        el.verdict.textContent = "Holds — springs back to " + len(e.gauge, false);
       }
     }
     el["s-ys"].textContent = fmt(p.ys, 0) + " MPa";
@@ -494,7 +537,7 @@
   }
   function hideResults() { el.results.classList.add("pending"); }
 
-  /* ================= load-extension curve ================= */
+  /* ================= curve ================= */
   var cc = el.curve.getContext("2d");
   var css = function (n) { return getComputedStyle(document.documentElement).getPropertyValue(n).trim(); };
 
@@ -508,28 +551,29 @@
     cc.clearRect(0, 0, w, h);
     if (!S.curve) return;
 
-    var padL = 52, padR = 14, padT = 18, padB = 24, i;
+    var padL = 44, padR = 10, padT = 16, padB = 20, i;
     var pts = S.curve.pts;
-    var maxX = pts[pts.length - 1].x * 1.05, maxY = S.eng.breakForce * 1.18;
-    if (S.mode === "load") maxY = Math.max(maxY, S.target * 1.1);
-    var X = function (v) { return padL + (v / maxX) * (w - padL - padR); };
-    var Y = function (v) { return h - padB - (v / maxY) * (h - padT - padB); };
+    var maxX = inLen(pts[pts.length - 1].x) * 1.05;
+    var maxY = inForce(S.eng.breakForce) * 1.18;
+    if (S.mode === "load") maxY = Math.max(maxY, inForce(S.target) * 1.1);
+    var X = function (v) { return padL + (inLen(v) / maxX) * (w - padL - padR); };
+    var Y = function (v) { return h - padB - (inForce(v) / maxY) * (h - padT - padB); };
 
-    cc.font = '500 9.5px "IBM Plex Mono", monospace';
+    cc.font = '500 9px "IBM Plex Mono", monospace';
     cc.strokeStyle = css("--line-2"); cc.lineWidth = 1; cc.fillStyle = css("--muted");
     for (i = 0; i <= 3; i++) {
-      var yv = maxY * i / 3, py = Y(yv);
+      var yv = maxY * i / 3, py = h - padB - (yv / maxY) * (h - padT - padB);
       cc.beginPath(); cc.moveTo(padL, py); cc.lineTo(w - padR, py); cc.stroke();
       cc.textAlign = "right"; cc.textBaseline = "middle";
-      cc.fillText(fmt(yv, 0), padL - 6, py);
+      cc.fillText(fmt(yv, yv < 10 ? 1 : 0), padL - 5, py);
     }
     for (i = 0; i <= 4; i++) {
-      var xv = maxX * i / 4;
+      var xv = maxX * i / 4, px = padL + (xv / maxX) * (w - padL - padR);
       cc.textAlign = "center"; cc.textBaseline = "top";
-      cc.fillText(fmt(xv, xv < 10 ? 1 : 0), X(xv), h - padB + 6);
+      cc.fillText(fmt(xv, xv < 10 ? 1 : 0), px, h - padB + 5);
     }
-    cc.textAlign = "left"; cc.textBaseline = "top"; cc.fillText("kN", 6, 7);
-    cc.textAlign = "right"; cc.fillText("mm", w - padR, h - 11);
+    cc.textAlign = "left"; cc.textBaseline = "top"; cc.fillText(LABEL[U.force], 5, 5);
+    cc.textAlign = "right"; cc.fillText(LABEL[U.len], w - padR, h - 10);
 
     cc.strokeStyle = css("--muted"); cc.beginPath();
     cc.moveTo(padL, padT); cc.lineTo(padL, h - padB); cc.lineTo(w - padR, h - padB); cc.stroke();
@@ -543,61 +587,51 @@
     }
     cc.stroke();
 
-    function mark(strain, force, label, colour) {
+    function mark(strain, f, label, colour) {
       if (pts[last - 1].strain < strain - 1e-9) return;
-      var px = X(strain * S.eng.gauge), py = Y(force);
+      var px = X(strain * S.eng.gauge), py = Y(f);
       cc.fillStyle = colour;
-      cc.beginPath(); cc.arc(px, py, 3.4, 0, Math.PI * 2); cc.fill();
-      cc.font = '600 9.5px "IBM Plex Mono", monospace';
+      cc.beginPath(); cc.arc(px, py, 3.2, 0, Math.PI * 2); cc.fill();
+      cc.font = '600 9px "IBM Plex Mono", monospace';
       cc.textAlign = "left"; cc.textBaseline = "bottom";
-      cc.fillText(label, Math.min(px + 6, w - padR - 42), py - 5);
+      cc.fillText(label, Math.min(px + 5, w - padR - 34), py - 4);
     }
     mark(S.curve.epsYield, S.eng.yieldForce, "YIELD", css("--steel"));
     mark(S.curve.epsUts, S.eng.breakForce, "MAX", css("--accent"));
 
-    // In load mode, show the target as a line the trace climbs toward.
     if (S.mode === "load" && S.target > 0) {
-      var ty = Y(Math.min(S.target, maxY));
-      cc.setLineDash([4, 4]); cc.strokeStyle = css("--steel"); cc.lineWidth = 1.4;
+      var ty = Y(Math.min(S.target, S.eng.breakForce * 1.18));
+      cc.setLineDash([4, 4]); cc.strokeStyle = css("--steel"); cc.lineWidth = 1.3;
       cc.beginPath(); cc.moveTo(padL, ty); cc.lineTo(w - padR, ty); cc.stroke();
       cc.setLineDash([]);
-      cc.fillStyle = css("--steel");
-      cc.font = '600 9.5px "IBM Plex Mono", monospace';
-      cc.textAlign = "left"; cc.textBaseline = "bottom";
-      cc.fillText("APPLIED " + fmt(S.target, 0) + " kN", padL + 4, ty - 4);
     }
     if (marker) {
       cc.fillStyle = css("--ink");
-      cc.beginPath(); cc.arc(X(marker.x), Y(marker.y), 3.6, 0, Math.PI * 2); cc.fill();
+      cc.beginPath(); cc.arc(X(marker.x), Y(marker.y), 3.4, 0, Math.PI * 2); cc.fill();
     }
   }
 
   /* ================= 3D specimen ================= */
   var renderer, scene, camera, barA, barB, gripL, gripR;
   var GH = 1.2, ENDL = 0.62, RINGS = 56, SEG = 30;
-  var orbit = { az: 0.42, pol: 1.16, dist: 5.5 };
+  var orbit = { az: 0.42, pol: 1.16, dist: 5.2 };
 
   function initThree() {
     renderer = new THREE.WebGLRenderer({ canvas: el.viewport, antialias: true, alpha: true });
     renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5));
     scene = new THREE.Scene();
     camera = new THREE.PerspectiveCamera(30, 2, 0.1, 100);
-
     scene.add(new THREE.HemisphereLight(0xdfe8f2, 0x2b3238, 0.9));
     var key = new THREE.DirectionalLight(0xffffff, 0.95); key.position.set(3, 5, 4); scene.add(key);
     var rim = new THREE.DirectionalLight(0xffc9a0, 0.45); rim.position.set(-4, 1.5, -3); scene.add(rim);
-
     var steel = new THREE.MeshStandardMaterial({ color: 0x9aa6b0, metalness: 0.85, roughness: 0.34 });
     var grip = new THREE.MeshStandardMaterial({ color: 0x4a545c, metalness: 0.55, roughness: 0.65 });
-
     barA = new THREE.Mesh(makeTube(), steel);
     barB = new THREE.Mesh(makeTube(), steel);
     scene.add(barA, barB);
-
     var jaw = new THREE.BoxGeometry(0.3, 0.8, 0.8);
     gripL = new THREE.Mesh(jaw, grip); gripR = new THREE.Mesh(jaw, grip);
     scene.add(gripL, gripR);
-
     bindOrbit(); updateCamera(); resize();
     window.addEventListener("resize", function () { resize(); drawCurve(prog, null); });
   }
@@ -625,26 +659,15 @@
   var COS = [], SIN = [];
   for (var _s = 0; _s < SEG; _s++) { COS.push(Math.cos(_s / SEG * Math.PI * 2)); SIN.push(Math.sin(_s / SEG * Math.PI * 2)); }
 
-  /**
-   * Radius and axial position along one half of the bar.
-   *
-   * The necking model follows what a ductile steel actually does:
-   *  - up to maximum load the gauge length thins UNIFORMLY (constant volume),
-   *  - past maximum load deformation localises into a neck about 1.4 diameters
-   *    wide -- set by the current diameter, not by the gauge length -- and the
-   *    rest of the bar stops stretching,
-   *  - the neck contracts to the reduction of area the training data reports for
-   *    this ductility (RA% = 0.47*EL% + 31.8), which for a typical steel is
-   *    around 40-45%: far more than a token waist.
-   */
+  /* Uniform thinning until maximum load; past it the neck takes over, about 1.4
+     diameters wide -- set by the current diameter, not the gauge length. */
   function profileAt(t, uniform, neck, gaugeHalf, r0, rNeckMin) {
     var rU = r0 / Math.sqrt(1 + Math.max(uniform, 0)), rG = r0 * 1.85, y, r;
     if (t <= 0.72) {
       y = t / 0.72 * gaugeHalf;
       if (neck > 0) {
-        var width = Math.max(1.4 * rU, gaugeHalf * 0.10);   // ~1.4 diameters
-        var shape = Math.exp(-Math.pow(y / width, 2));
-        r = rU - (rU - rNeckMin) * neck * shape;
+        var width = Math.max(1.4 * rU, gaugeHalf * 0.10);
+        r = rU - (rU - rNeckMin) * neck * Math.exp(-Math.pow(y / width, 2));
       } else r = rU;
     } else if (t <= 0.86) {
       var u = (t - 0.72) / 0.14;
@@ -658,18 +681,9 @@
     return { y: y, r: Math.max(r, 0.002) };
   }
 
-  /**
-   * Cup and cone.
-   *
-   * A ductile bar does not part on a flat plane. Voids nucleate at inclusions in
-   * the centre of the neck where stress triaxiality peaks, coalesce into a
-   * penny-shaped crack normal to the axis, and that flat fibrous zone runs
-   * outward until the remaining ligament fails in shear at roughly 45 degrees to
-   * the surface. One face ends up a cup, the mating face a cone that sits in it.
-   *
-   * Both cap centres are therefore displaced the SAME way along the axis: one
-   * half's cone protrudes, the other half's cup recedes, and they nest.
-   */
+  /* Cup and cone: voids coalesce at the neck centre, the flat fibrous crack runs
+     outward, the last ligament shears near the surface. Both cap centres shift
+     the same way along the axis, so one half's cone seats in the other's cup. */
   function deform(mesh, sign, uniform, neck, gaugeHalf, r0, rNeckMin, capShift) {
     var pos = mesh.geometry.attributes.position, arr = pos.array, i, j, k = 0, first = null, last = null;
     for (i = 0; i < RINGS; i++) {
@@ -677,9 +691,7 @@
       if (i === 0) first = pr;
       if (i === RINGS - 1) last = pr;
       var x = sign * pr.y;
-      // Shear lip: the last sliver before the free surface tilts, so the rim of
-      // the fracture face is drawn back rather than cut square.
-      if (capShift !== 0 && i === 0) x += capShift * 0.22;
+      if (capShift !== 0 && i === 0) x += capShift * 0.22;   // shear lip at the rim
       for (j = 0; j < SEG; j++) { arr[k++] = x; arr[k++] = pr.r * COS[j]; arr[k++] = pr.r * SIN[j]; }
     }
     arr[k++] = sign * first.y + capShift; arr[k++] = 0; arr[k++] = 0;
@@ -697,7 +709,6 @@
     var rU = r0 / Math.sqrt(1 + Math.max(uniform, 0));
     var rNeckMin = rU * Math.sqrt(1 - (S.eng ? S.eng.reductionOfArea : 0.44));
     var capShift = fractured ? -Math.max(rNeckMin * 0.85, 0.01) : 0;
-
     deform(barA, 1, uniform, neck, gh, r0, rNeckMin, capShift);
     deform(barB, -1, uniform, neck, gh, r0, rNeckMin, capShift);
     barA.position.x = split; barB.position.x = -split;
@@ -727,17 +738,16 @@
     });
     el.viewport.addEventListener("wheel", function (e) {
       e.preventDefault();
-      orbit.dist = Math.max(2.6, Math.min(11, orbit.dist + Math.sign(e.deltaY) * 0.42));
+      orbit.dist = Math.max(2.4, Math.min(11, orbit.dist + Math.sign(e.deltaY) * 0.42));
       updateCamera(); render();
     }, { passive: false });
-    // Keyboard orbit: the drag hint is useless to anyone not using a mouse.
     el.viewport.addEventListener("keydown", function (e) {
       var k = e.key, step = 0.09, used = true;
       if (k === "ArrowLeft") orbit.az -= step;
       else if (k === "ArrowRight") orbit.az += step;
       else if (k === "ArrowUp") orbit.pol = Math.max(0.12, orbit.pol - step);
       else if (k === "ArrowDown") orbit.pol = Math.min(Math.PI - 0.12, orbit.pol + step);
-      else if (k === "+" || k === "=") orbit.dist = Math.max(2.6, orbit.dist - 0.4);
+      else if (k === "+" || k === "=") orbit.dist = Math.max(2.4, orbit.dist - 0.4);
       else if (k === "-" || k === "_") orbit.dist = Math.min(11, orbit.dist + 0.4);
       else used = false;
       if (used) { e.preventDefault(); updateCamera(); render(); }
@@ -753,17 +763,12 @@
   }
   function render() { if (renderer) renderer.render(scene, camera); }
 
-  function liveReadout(force, ext) {
-    el["live-force"].innerHTML = unit(force, dp(force), "kN");
-    el["live-ext"].innerHTML = unit(ext, 2, "mm");
-    el["live-len"].innerHTML = unit(S.gauge + ext, 2, "mm");
+  function liveReadout(f, ext) {
+    el["live-force"].innerHTML = force(f, true);
+    el["live-ext"].innerHTML = len(ext, true);
+    el["live-len"].innerHTML = len(S.gauge + ext, true);
   }
-  function rest() {
-    build(0, 0, 0, false);
-    liveReadout(0, 0);
-    el.phase.textContent = "At rest";
-    render();
-  }
+  function rest() { build(0, 0, 0, false); liveReadout(0, 0); el.phase.textContent = "At rest"; render(); }
 
   /* ================= the test ================= */
   var prog = 1, busy = false;
@@ -772,8 +777,7 @@
   function run() {
     if (busy || !S.curve) return;
     var reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    if (S.mode === "load") return runLoad(reduced);
-    return runPull(reduced);
+    return S.mode === "load" ? runLoad(reduced) : runPull(reduced);
   }
 
   function runPull(reduced) {
@@ -792,16 +796,11 @@
       if (now - t0 > 14000) { snap(); return; }
       var k = Math.max(0, Math.min(1, (now - t0) / dur));
       var p = pts[Math.min(pts.length - 1, Math.floor(k * (pts.length - 1)))];
-
-      // Up to maximum load the bar thins uniformly; past it, the neck takes over
-      // and the rest of the gauge stops elongating. Localisation is unstable, so
-      // the neck deepens faster than linearly once it starts.
       var uniform, neck;
       if (p.strain <= c.epsUts) { uniform = p.strain; neck = 0; }
       else {
         uniform = c.epsUts;
-        var f = (p.strain - c.epsUts) / Math.max(c.epsTotal - c.epsUts, 1e-9);
-        neck = Math.pow(f, 0.65);
+        neck = Math.pow((p.strain - c.epsUts) / Math.max(c.epsTotal - c.epsUts, 1e-9), 0.65);
       }
       build(uniform * 2.2, neck, 0, false);
       liveReadout(p.y, p.x);
@@ -817,8 +816,6 @@
     requestAnimationFrame(safeFrame);
   }
 
-  /* Fracture: the crack runs from the centre of the neck outward, the halves
-     spring back by the elastic strain they were holding, and they separate. */
   function snap() {
     var t0 = null, dur = 700, c = S.curve;
     el.phase.textContent = "Fractured";
@@ -826,12 +823,10 @@
     showResults();
     el.results.classList.add("flash");
     setTimeout(function () { el.results.classList.remove("flash"); }, 520);
-
     function frame(now) {
       if (t0 === null) t0 = now;
       var k = Math.max(0, Math.min(1, (now - t0) / dur)), ease = 1 - Math.pow(1 - k, 3);
-      var springback = 1 - 0.012 * ease;               // elastic recovery on parting
-      build(c.epsUts * 2.2 * springback, 1, 0.34 * ease, true);
+      build(c.epsUts * 2.2 * (1 - 0.012 * ease), 1, 0.34 * ease, true);
       render();
       if (k < 1) requestAnimationFrame(safeFrame); else finish();
     }
@@ -839,8 +834,6 @@
     requestAnimationFrame(safeFrame);
   }
 
-  /* Load mode: force rises at a constant rate until the target is reached or the
-     bar can no longer carry it. */
   function runLoad(reduced) {
     var o = loadOutcome(), c = S.curve, e = S.eng;
     if (reduced) {
@@ -850,22 +843,18 @@
       return;
     }
     busy = true; el.run.disabled = true; hideResults();
-
-    var peak = o.broke ? e.breakForce : S.target;
-    var dur = 2400, t0 = null, pts = c.pts;
+    var peak = o.broke ? e.breakForce : S.target, dur = 2400, t0 = null, pts = c.pts;
 
     function frame(now) {
       if (t0 === null) t0 = now;
       if (now - t0 > 14000) { settle(o); return; }
       var k = Math.max(0, Math.min(1, (now - t0) / dur));
-      var F = peak * k;                                  // constant dF/dt
-      var hit = pts[0], i;
+      var F = peak * k, hit = pts[0], i;
       for (i = 0; i < pts.length; i++) {
         if (pts[i].strain > c.epsUts) break;
         if (pts[i].y <= F) hit = pts[i]; else break;
       }
-      var uniform = Math.min(hit.strain, c.epsUts);
-      build(uniform * 2.2, 0, 0, false);
+      build(Math.min(hit.strain, c.epsUts) * 2.2, 0, 0, false);
       liveReadout(F, hit.x);
       el.phase.textContent = F < e.yieldForce ? "Elastic" : "Yielding";
       drawCurve(Math.min(1, hit.strain / c.epsTotal), { x: hit.x, y: F });
@@ -875,20 +864,17 @@
       else settle(o);
     }
     function safeFrame(now) {
-      try { frame(now); }
-      catch (err) { showResults(o); finish(); throw err; }
+      try { frame(now); } catch (err) { showResults(o); finish(); throw err; }
     }
     requestAnimationFrame(safeFrame);
   }
 
-  /* Target reached without rupture: release the load and show what stays. */
   function settle(o) {
     var t0 = null, dur = 700;
-    el.phase.textContent = o.yielded ? "Unloading — permanent set" : "Unloading — springs back";
+    el.phase.textContent = o.yielded ? "Unloading" : "Unloading";
     showResults(o);
     el.results.classList.add("flash");
     setTimeout(function () { el.results.classList.remove("flash"); }, 520);
-
     function frame(now) {
       if (t0 === null) t0 = now;
       var k = Math.max(0, Math.min(1, (now - t0) / dur)), ease = 1 - Math.pow(1 - k, 3);
@@ -927,16 +913,13 @@
   var mq = window.matchMedia("(prefers-color-scheme: dark)");
   (mq.addEventListener ? mq.addEventListener.bind(mq, "change") : mq.addListener.bind(mq))(function () { drawCurve(prog, null); });
 
-  // Numbers first: the prediction needs neither three.js nor WebGL, so a blocked
-  // CDN or a disabled GPU must not take the whole page with it.
+  // Numbers first: the prediction needs neither three.js nor WebGL.
   buildTiles();
   apply(PRESETS[1]);
   try { initThree(); rest(); }
   catch (err) {
     el.viewport.hidden = true;
     el.phase.textContent = "3D view unavailable";
-    var hint = document.querySelector(".hint");
-    if (hint) hint.hidden = true;
     if (window.console) console.warn("3D view disabled:", err && err.message);
   }
 })();
