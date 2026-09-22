@@ -693,7 +693,7 @@
     renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5));
     renderer.outputEncoding = THREE.sRGBEncoding;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 0.82;
+    renderer.toneMappingExposure = 0.88;
     scene = new THREE.Scene();
     camera = new THREE.PerspectiveCamera(30, 2, 0.1, 100);
     /* A PBR metal reflects its surroundings and almost nothing else, so
@@ -709,12 +709,19 @@
     var fill = new THREE.DirectionalLight(0xc9d9ea, 0.22); fill.position.set(-3, 2, 3); scene.add(fill);
     var rim = new THREE.DirectionalLight(0xffcda0, 0.34); rim.position.set(-4, 1.5, -4); scene.add(rim);
 
+    /* DoubleSide matters here. The cup half of the fracture is a cone recessed
+       INTO the bar, so with back-face culling its inner surface is discarded and
+       the cup renders as a hole you can see the room through. */
     var steel = new THREE.MeshStandardMaterial({
-      color: 0x8e97a1, metalness: 0.80, roughness: 0.32, envMapIntensity: 0.78 });
+      color: 0x3d444b, metalness: 0.55, roughness: 0.42, envMapIntensity: 0.40,
+      side: THREE.DoubleSide });
     var grip = new THREE.MeshStandardMaterial({
-      color: 0x4e565e, metalness: 0.30, roughness: 0.68, envMapIntensity: 0.45 });
-    barA = new THREE.Mesh(makeTube(), steel);
-    barB = new THREE.Mesh(makeTube(), steel);
+      color: 0x24282c, metalness: 0.18, roughness: 0.82, envMapIntensity: 0.22 });
+    var torn = new THREE.MeshStandardMaterial({
+      color: 0x7c8288, metalness: 0.08, roughness: 0.95, envMapIntensity: 0.18,
+      side: THREE.DoubleSide, flatShading: true });
+    barA = new THREE.Mesh(makeTube(), [steel, torn]);
+    barB = new THREE.Mesh(makeTube(), [steel, torn]);
     scene.add(barA, barB);
     var jaw = new THREE.BoxGeometry(0.26, 0.62, 0.62);
     gripL = new THREE.Mesh(jaw, grip); gripR = new THREE.Mesh(jaw, grip);
@@ -764,11 +771,18 @@
         idx.push(a, c, b, b, c, d);
       }
     }
+    var tubeCount = idx.length;
     for (j = 0; j < SEG; j++) {
       idx.push(CAP_NEAR, NEAR_RIM + j, NEAR_RIM + (j + 1) % SEG);
       idx.push(CAP_FAR, FAR_RIM + (j + 1) % SEG, FAR_RIM + j);
     }
     g.setIndex(idx);
+    // The broken face gets its own material. Shaded like the polished barrel it
+    // read as an opening rather than a surface -- a fresh ductile fracture is
+    // dull and fibrous, not reflective, and that difference is what makes it
+    // legible as torn metal.
+    g.addGroup(0, tubeCount, 0);
+    g.addGroup(tubeCount, idx.length - tubeCount, 1);
     return g;
   }
 
@@ -828,7 +842,10 @@
     var gh = GH * (1 + uniform);
     var rU = r0 / Math.sqrt(1 + Math.max(uniform, 0));
     var rNeckMin = rU * Math.sqrt(1 - (S.eng ? S.eng.reductionOfArea : 0.44));
-    var capShift = fractured ? -Math.max(rNeckMin * 0.85, 0.01) : 0;
+    // A ductile fracture face is essentially FLAT -- a fibrous central zone with
+    // a small shear lip at the rim. Any real depth here renders as a drilled
+    // bore rather than a break, especially on the cup half.
+    var capShift = fractured ? -Math.max(rNeckMin * 0.13, 0.004) : 0;
     deform(barA, 1, uniform, neck, gh, r0, rNeckMin, capShift);
     deform(barB, -1, uniform, neck, gh, r0, rNeckMin, capShift);
     barA.position.x = split; barB.position.x = -split;
