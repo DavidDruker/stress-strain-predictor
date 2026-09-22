@@ -620,7 +620,13 @@ async function checkLoadMode(browser, url) {
   const breakF = base.uts * 78.5 / 1000;
 
   const cases = [
-    { name: "below yield", kN: yieldF * 0.6, want: /hold/i, permanentZero: true },
+    // 0.6x yield was the only sub-yield case tested, and it passed by accident:
+    // the error there happened to land just inside the 0.02mm tolerance. A load
+    // well below yield is where reading the elastic response off the coarse
+    // curve array went wrong by an order of magnitude.
+    { name: "far below yield", kN: yieldF * 0.02, want: /hold/i, permanentZero: true, elastic: true },
+    { name: "below yield", kN: yieldF * 0.6, want: /hold/i, permanentZero: true, elastic: true },
+    { name: "just below yield", kN: yieldF * 0.999, want: /hold/i, permanentZero: true, elastic: true },
     { name: "between yield and max", kN: (yieldF + breakF) / 2, want: /yield/i },
     { name: "above maximum", kN: breakF * 1.2, want: /ruptur/i },
   ];
@@ -650,10 +656,26 @@ async function checkLoadMode(browser, url) {
         + "maximum should keep a permanent set, at or above maximum should rupture.");
       continue;
     }
-    if (c.permanentZero && r.permanent !== null && r.permanent > 0.02) {
-      fail("medium", "load-mode", `"${c.name}" reported ${r.permanent} mm permanent set below yield`,
-        r, "An elastic load must leave no permanent stretch.");
+    if (c.permanentZero && r.permanent !== null && r.permanent > 0.0005) {
+      fail("high", "load-mode", `"${c.name}" reported ${r.permanent} mm permanent set below yield`,
+        r, "An elastic load must leave exactly zero permanent stretch. Compute the sub-yield "
+        + "response from Hooke's law (F / stiffness) rather than reading it off the curve array.");
       continue;
+    }
+    if (c.elastic) {
+      // Hooke's law is closed form, so the displayed stretch must match it, not
+      // whichever discretised curve sample happens to sit nearby.
+      const expect = c.kN / (205000 * 78.5 / 50 / 1000);
+      const err = Math.abs(r.stretch - expect);
+      if (r.stretch === null || err > Math.max(0.002, expect * 0.05)) {
+        fail("critical", "load-mode",
+          `"${c.name}" stretch is ${r.stretch} mm, Hooke's law says ${expect.toFixed(4)} mm`,
+          { applied: c.kN, shown: r.stretch, expected: expect, r },
+          "Below yield the extension is F/stiffness exactly. Reading it off the 240-point "
+          + "curve snaps every small load to the same sample, because under 2% of those "
+          + "points cover the elastic range.");
+        continue;
+      }
     }
     if (page.__errors.length) {
       fail("high", "load-mode", `"${c.name}" threw`, page.__errors.slice(-3), "Fix the thrown error.");

@@ -232,12 +232,12 @@
     <div class="card curve-card">
       <canvas id="curve" role="img" aria-label="Load-extension curve from zero load to fracture"></canvas>
     </div>
-    <div class="card out-card out" id="results" aria-live="polite">
+    <div class="card out-card out" id="results">
       <div class="verdictrow">
-        <span class="verdict" id="verdict">&mdash;</span>
+        <span class="verdict" id="verdict" aria-live="polite">&mdash;</span>
         <span class="phase" id="phase">At rest</span>
       </div>
-      <div class="tiles" id="tiles"></div>
+      <div class="tiles" id="tiles" aria-live="polite"></div>
       <div class="live">
         <div><div class="lab">Load</div><div class="v" id="live-force">0.0<u>kN</u></div></div>
         <div><div class="lab">Extension</div><div class="v" id="live-ext">0.00<u>mm</u></div></div>
@@ -269,11 +269,11 @@
   var UNITS = {
     area:  { "mm2": 1, "cm2": 100, "in2": 645.16 },
     len:   { "mm": 1, "cm": 10, "m": 1000, "in": 25.4 },
-    force: { "kN": 1, "N": 0.001, "kgf": 0.00980665, "lbf": 0.004448222, "tonf": 9.80665 }
+    force: { "kN": 1, "N": 0.001, "kgf": 0.00980665, "lbf": 0.004448222, "tf": 9.80665 }
   };
   var LABEL = { mm2: "mm²", cm2: "cm²", in2: "in²",
                 mm: "mm", cm: "cm", m: "m", in: "in",
-                kN: "kN", N: "N", kgf: "kgf", lbf: "lbf", tonf: "tf" };
+                kN: "kN", N: "N", kgf: "kgf", lbf: "lbf", tf: "tf" };
   var U = { area: "mm2", len: "mm", force: "kN" };
 
   var fmt = function (v, d) { return v.toLocaleString(undefined, { minimumFractionDigits: d, maximumFractionDigits: d }); };
@@ -444,13 +444,24 @@
       c[n] = v;
     });
     S.c = c; S.invalid = invalid;
-    S.area = num(el.area, "area", 0, 78.5).v;
-    S.gauge = num(el.gauge, "len", 0, 50).v;
-    S.target = num(el.target, "force", 0, 45).v;
+    // The .bad flag used to be computed and never read, so a negative or
+    // unparseable dimension silently fell back to the default and the page
+    // showed a confident force underneath it with no indication at all.
+    var a = num(el.area, "area", 0, 78.5), g = num(el.gauge, "len", 0, 50),
+        f = num(el.target, "force", 0, 45);
+    S.area = a.v; S.gauge = g.v; S.target = f.v;
+    S.badGeom = [];
+    if (a.bad) S.badGeom.push({ id: "area", name: "Cross-section", shown: fmt(78.5 / UNITS.area[U.area], 3) + " " + LABEL[U.area] });
+    if (g.bad) S.badGeom.push({ id: "gauge", name: "Length", shown: fmt(50 / UNITS.len[U.len], 3) + " " + LABEL[U.len] });
+    if (f.bad && S.mode === "load") S.badGeom.push({ id: "target", name: "Load", shown: fmt(45 / UNITS.force[U.force], 3) + " " + LABEL[U.force] });
   }
 
   function guardLines() {
     var out = [];
+    (S.badGeom || []).forEach(function (g) {
+      out.push({ bad: true, geom: g.id, el: null,
+                 text: g.name + " is not a usable dimension \u2014 using " + g.shown + " until it is corrected." });
+    });
     S.invalid.forEach(function (f) {
       out.push({ bad: true, el: f.el, text: f.v + " wt% is not a possible composition. Ignored." });
     });
@@ -491,9 +502,13 @@
     PRESETS.forEach(function (p) { p.node.setAttribute("aria-pressed", String(p.n === S.preset)); });
 
     MODEL.elements.forEach(function (n) { el["w-" + n].classList.remove("flag", "bad"); });
+    ["area", "gauge", "target"].forEach(function (n) {
+      var w = el[n].closest(".f"); if (w) w.classList.remove("bad");
+    });
     el.guard.innerHTML = "";
     guardLines().forEach(function (f) {
       if (f.el) el["w-" + f.el].classList.add(f.bad ? "bad" : "flag");
+      if (f.geom) { var w = el[f.geom].closest(".f"); if (w) w.classList.add("bad"); }
       var d = document.createElement("div");
       d.className = "flagline" + (f.bad ? " bad" : "");
       d.innerHTML = (f.el ? "<b>" + f.el + "</b> " : "") + f.text;
@@ -507,14 +522,34 @@
   function loadOutcome() {
     var e = S.eng, F = S.target;
     if (F >= e.breakForce) return { broke: true, peak: e.breakForce };
+
+    // Below yield the answer is Hooke's law, so use it. Reading the elastic
+    // response off the 240-point curve snapped every load under ~11 kN to the
+    // same first sample -- 21x too much stretch at 0.5 kN -- and left a non-zero
+    // "permanent stretch" sitting under a verdict that said it springs back.
+    // Only ~4 of those 240 samples cover the elastic range, because it is under
+    // 2% of the strain axis.
+    if (F <= e.yieldForce) {
+      var elastic = F / e.stiffness;
+      return { broke: false, peak: F, ext: elastic, strain: elastic / e.gauge,
+               permanent: 0, yielded: false, finalLength: e.gauge };
+    }
+
+    // Past yield, interpolate between the bracketing samples rather than
+    // snapping to the first one that clears the target.
     var pts = S.curve.pts, i, hit = pts[pts.length - 1];
-    for (i = 0; i < pts.length; i++) {
-      if (pts[i].strain > S.curve.epsUts) break;
-      if (pts[i].y >= F) { hit = pts[i]; break; }
+    for (i = 1; i < pts.length; i++) {
+      if (pts[i].strain > S.curve.epsUts) { hit = pts[i - 1]; break; }
+      if (pts[i].y >= F) {
+        var a = pts[i - 1], b = pts[i];
+        var f = b.y === a.y ? 0 : (F - a.y) / (b.y - a.y);
+        hit = { x: a.x + (b.x - a.x) * f, y: F, strain: a.strain + (b.strain - a.strain) * f };
+        break;
+      }
     }
     var permanent = Math.max(0, hit.x - F / e.stiffness);
     return { broke: false, peak: F, ext: hit.x, strain: hit.strain, permanent: permanent,
-             yielded: F > e.yieldForce, finalLength: e.gauge + permanent };
+             yielded: true, finalLength: e.gauge + permanent };
   }
 
   function showResults(outcome) {
@@ -530,8 +565,10 @@
       var o = outcome || loadOutcome();
       el["t-app"].innerHTML = force(o.peak, true);
       el["t-ext"].innerHTML = o.broke ? "&mdash;" : len(o.ext, true);
-      el["t-perm"].innerHTML = o.broke ? "&mdash;" : len(o.permanent, true);
-      el["t-len"].innerHTML = o.broke ? "&mdash;" : len(o.finalLength, true);
+      // If the verdict says it springs back, the tiles must say so too.
+      var perm = o.yielded ? o.permanent : 0;
+      el["t-perm"].innerHTML = o.broke ? "&mdash;" : len(perm, true);
+      el["t-len"].innerHTML = o.broke ? "&mdash;" : len(e.gauge + perm, true);
       if (o.broke) {
         el.verdict.className = "verdict broke";
         el.verdict.textContent = "Ruptures — it carries " + force(e.breakForce, false) + " at most";
@@ -628,7 +665,20 @@
   /* ================= 3D specimen ================= */
   var renderer, scene, camera, barA, barB, gripL, gripR;
   var GH = 1.2, ENDL = 0.62, RINGS = 56, SEG = 30;
-  var orbit = { az: 0.42, pol: 1.16, dist: 5.2 };
+  var orbit = { az: 0.42, pol: 1.16, dist: 8.4 }, userZoomed = false;
+
+  /* The default view has to show the break, which is the point of the page.
+     The specimen's half-extent after fracture (stretched gauge + shoulder +
+     separation + grip) has to fit the horizontal field of view, and that depends
+     on the window's aspect ratio -- a fixed distance cropped a grip off the edge
+     at every desktop size tested. */
+  function fitDistance() {
+    if (!camera) return 8.4;
+    var halfExtent = GH * 1.35 + ENDL + 0.34 + 0.35;
+    var vFov = camera.fov * Math.PI / 180;
+    var need = halfExtent / (Math.tan(vFov / 2) * Math.max(camera.aspect, 0.4));
+    return Math.max(3.2, Math.min(11, need * 1.08));
+  }
 
   function initThree() {
     renderer = new THREE.WebGLRenderer({ canvas: el.viewport, antialias: true, alpha: true });
@@ -752,6 +802,7 @@
     });
     el.viewport.addEventListener("wheel", function (e) {
       e.preventDefault();
+      userZoomed = true;
       orbit.dist = Math.max(2.4, Math.min(11, orbit.dist + Math.sign(e.deltaY) * 0.42));
       updateCamera(); render();
     }, { passive: false });
@@ -761,8 +812,8 @@
       else if (k === "ArrowRight") orbit.az += step;
       else if (k === "ArrowUp") orbit.pol = Math.max(0.12, orbit.pol - step);
       else if (k === "ArrowDown") orbit.pol = Math.min(Math.PI - 0.12, orbit.pol + step);
-      else if (k === "+" || k === "=") orbit.dist = Math.max(2.4, orbit.dist - 0.4);
-      else if (k === "-" || k === "_") orbit.dist = Math.min(11, orbit.dist + 0.4);
+      else if (k === "+" || k === "=") { userZoomed = true; orbit.dist = Math.max(2.4, orbit.dist - 0.4); }
+      else if (k === "-" || k === "_") { userZoomed = true; orbit.dist = Math.min(11, orbit.dist + 0.4); }
       else used = false;
       if (used) { e.preventDefault(); updateCamera(); render(); }
     });
@@ -773,6 +824,7 @@
     if (!w || !h || !renderer) return;
     renderer.setSize(w, h, false);
     camera.aspect = w / h; camera.updateProjectionMatrix();
+    if (!userZoomed) { orbit.dist = fitDistance(); updateCamera(); }
     render();
   }
   function render() { if (renderer) renderer.render(scene, camera); }
