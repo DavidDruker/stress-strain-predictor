@@ -16,6 +16,8 @@
     --accent: #b8491a;
     --steel: #3d5a73;
     --warn: #8f5c10;
+    --bad: #a32c2c;
+    --good: #2c6a4c;
     --shadow: 0 1px 2px rgba(20, 30, 40, .07), 0 6px 20px rgba(20, 30, 40, .05);
     --f-display: "Barlow Condensed", "Arial Narrow", system-ui, sans-serif;
     --f-body: "Barlow", system-ui, -apple-system, sans-serif;
@@ -27,6 +29,7 @@
       --ink: #e7ebee; --ink-2: #b9c2c9; --muted: #8a949c;
       --line: #2a3238; --line-2: #222a30;
       --accent: #ff8c42; --steel: #8bb0d2; --warn: #d9a33f;
+      --bad: #e4736b; --good: #63b98c;
       --shadow: 0 1px 2px rgba(0,0,0,.4), 0 8px 24px rgba(0,0,0,.3);
     }
   }
@@ -35,176 +38,170 @@
     --ink: #e7ebee; --ink-2: #b9c2c9; --muted: #8a949c;
     --line: #2a3238; --line-2: #222a30;
     --accent: #ff8c42; --steel: #8bb0d2; --warn: #d9a33f;
+    --bad: #e4736b; --good: #63b98c;
     --shadow: 0 1px 2px rgba(0,0,0,.4), 0 8px 24px rgba(0,0,0,.3);
   }
 
   * { box-sizing: border-box; }
   body { background: var(--ground); color: var(--ink); font-family: var(--f-body); font-size: 15px; line-height: 1.5; margin: 0; }
-  .wrap { max-width: 1080px; margin: 0 auto; padding: 0 16px; padding-block: 30px 48px; }
+  .wrap { max-width: 1320px; margin: 0 auto; padding: 0 16px; padding-block: 20px 36px; }
 
-  h1 { font-family: var(--f-display); font-size: clamp(28px, 4.6vw, 38px); font-weight: 700; text-transform: uppercase; letter-spacing: .015em; margin: 0; line-height: 1; }
-  .sub { color: var(--muted); margin: 8px 0 0; max-width: 60ch; }
-  header { margin-bottom: 22px; }
-
+  h1 { font-family: var(--f-display); font-size: clamp(24px, 3.4vw, 32px); font-weight: 700; text-transform: uppercase; letter-spacing: .015em; margin: 0 0 14px; line-height: 1; }
   .panel { background: var(--surface); border: 1px solid var(--line); border-radius: 4px; box-shadow: var(--shadow); }
+  .lab { font-family: var(--f-mono); font-size: 10px; letter-spacing: .13em; text-transform: uppercase; color: var(--muted); }
 
-  .console { display: grid; gap: 16px; grid-template-areas: "stage" "input"; }
-  @media (min-width: 880px) {
-    .console { grid-template-columns: 250px minmax(0, 1fr); grid-template-areas: "input stage"; align-items: start; }
+  .layout { display: grid; gap: 16px; grid-template-columns: 1fr; }
+  @media (min-width: 900px) {
+    .layout { grid-template-columns: 264px minmax(0, 1fr); align-items: start; }
+    .side { position: sticky; top: calc(env(safe-area-inset-top, 0px) + 14px); max-height: calc(100vh - 40px); overflow-y: auto; }
   }
-  .stage { grid-area: stage; min-width: 0; }
-  .input { grid-area: input; min-width: 0; }
+  .side { min-width: 0; }
+  .sim { min-width: 0; }
 
-  .lab { font-family: var(--f-mono); font-size: 10px; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); }
+  /* ---- sidebar ---- */
+  .side .body { padding: 12px; }
+  .side .body + .body { border-top: 1px solid var(--line-2); }
 
-  /* ---- input ---- */
-  .input .body { padding: 13px; }
-  .presets { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 12px; }
-  .chip { font-family: var(--f-display); font-size: 14px; font-weight: 600; padding: 4px 9px; border: 1px solid var(--line); background: var(--surface-2); color: var(--ink-2); border-radius: 3px; cursor: pointer; }
+  .modes { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; margin-bottom: 11px; }
+  .mode { font-family: var(--f-display); font-size: 14px; font-weight: 600; padding: 7px 4px; border: 1px solid var(--line); background: var(--surface-2); color: var(--ink-2); border-radius: 3px; cursor: pointer; }
+  .mode[aria-pressed="true"] { background: var(--steel); border-color: var(--steel); color: #fff; }
+
+  .presets { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 10px; }
+  .chip { font-family: var(--f-display); font-size: 13px; font-weight: 600; padding: 3px 8px; border: 1px solid var(--line); background: var(--surface-2); color: var(--ink-2); border-radius: 3px; cursor: pointer; }
   .chip:hover { border-color: var(--steel); color: var(--ink); }
   .chip[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: #fff; }
-  .els { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 7px; }
-  .f label { display: block; font-family: var(--f-mono); font-size: 10px; color: var(--muted); margin-bottom: 2px; }
-  .f input { width: 100%; font-family: var(--f-mono); font-size: 13px; font-variant-numeric: tabular-nums; padding: 6px 7px; border: 1px solid var(--line); border-radius: 3px; background: var(--surface-2); color: var(--ink); }
+
+  .els { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+  .f { min-width: 0; }
+  .f label { display: block; font-family: var(--f-mono); font-size: 10px; color: var(--muted); }
+  .f input { width: 100%; font-family: var(--f-mono); font-size: 13px; font-variant-numeric: tabular-nums; padding: 5px 6px; border: 1px solid var(--line); border-radius: 3px; background: var(--surface-2); color: var(--ink); }
   .f input:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+  .f .rng { display: block; font-family: var(--f-mono); font-size: 8.5px; color: var(--muted); letter-spacing: -.01em; margin-top: 1px; }
   .f.flag input { border-color: var(--warn); }
-  .run { width: 100%; margin-top: 12px; padding: 11px; cursor: pointer; font-family: var(--f-display); font-size: 18px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; background: var(--accent); color: #fff; border: none; border-radius: 3px; }
+  .f.bad input { border-color: var(--bad); }
+  .geo { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .geo .f label, .load .f label { font-size: 9.5px; }
+
+  .run { width: 100%; margin-top: 11px; padding: 10px; cursor: pointer; font-family: var(--f-display); font-size: 17px; font-weight: 700; letter-spacing: .09em; text-transform: uppercase; background: var(--accent); color: #fff; border: none; border-radius: 3px; }
   .run:hover { filter: brightness(1.08); }
   .run:disabled { opacity: .5; cursor: progress; }
   .run:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
-  .spec { margin-top: 10px; font-size: 12px; color: var(--muted); line-height: 1.4; }
-  .guard { margin-top: 10px; display: grid; gap: 5px; }
+
+  .guard { margin-top: 9px; display: grid; gap: 4px; }
   .guard:empty { display: none; }
-  .flagline { font-size: 12.5px; line-height: 1.35; color: var(--ink-2); border-left: 3px solid var(--warn); padding: 5px 0 5px 8px; background: var(--surface-2); }
+  .flagline { font-size: 12px; line-height: 1.3; color: var(--ink-2); border-left: 3px solid var(--warn); padding: 4px 0 4px 7px; background: var(--surface-2); overflow-wrap: anywhere; min-width: 0; }
+  .flagline.bad { border-left-color: var(--bad); }
   .flagline b { font-family: var(--f-mono); color: var(--warn); }
+  .flagline.bad b { color: var(--bad); }
 
-  /* ---- stage ---- */
+  /* ---- simulation ---- */
   .shell { position: relative; background: var(--surface-2); border-radius: 4px 4px 0 0; }
-  #viewport { display: block; width: 100%; height: clamp(250px, 40vw, 360px); touch-action: none; cursor: grab; border-radius: 4px 4px 0 0; }
+  #viewport { display: block; width: 100%; height: clamp(300px, 52vh, 560px); touch-action: none; cursor: grab; border-radius: 4px 4px 0 0; }
   #viewport:active { cursor: grabbing; }
+  #viewport:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
   .hint { position: absolute; left: 12px; bottom: 9px; pointer-events: none; }
-  .phase { position: absolute; right: 12px; bottom: 9px; font-family: var(--f-mono); font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--accent); }
+  .phase { position: absolute; right: 12px; top: 10px; font-family: var(--f-mono); font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--accent); }
 
-  .live { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; background: var(--line-2); border-top: 1px solid var(--line-2); }
-  .live div { background: var(--surface); padding: 9px 13px; }
-  .live .v { font-family: var(--f-mono); font-size: clamp(17px, 2.6vw, 21px); font-weight: 600; font-variant-numeric: tabular-nums; line-height: 1.3; }
+  .live { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; background: var(--line-2); border-top: 1px solid var(--line-2); }
+  .live div { background: var(--surface); padding: 9px 13px; min-width: 0; }
+  .live .v { font-family: var(--f-mono); font-size: clamp(16px, 2.3vw, 21px); font-weight: 600; font-variant-numeric: tabular-nums; line-height: 1.3; }
   .live .v u { text-decoration: none; font-size: .58em; font-weight: 500; color: var(--muted); margin-left: 3px; }
-  #curve { display: block; width: 100%; height: 150px; border-top: 1px solid var(--line-2); }
+  #curve { display: block; width: 100%; height: 168px; border-top: 1px solid var(--line-2); }
 
   /* ---- results ---- */
-  .results { margin-top: 16px; }
-  .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1px; background: var(--line-2); border-radius: 4px; overflow: hidden; }
-  .tile { background: var(--surface); padding: 14px 15px; transition: background .5s ease; }
-  .tile .v { font-family: var(--f-mono); font-size: clamp(23px, 3.4vw, 30px); font-weight: 600; font-variant-numeric: tabular-nums; line-height: 1.2; margin-top: 3px; }
+  .results { margin-top: 14px; }
+  .verdict { padding: 11px 15px; border-bottom: 1px solid var(--line-2); font-family: var(--f-display); font-size: 19px; font-weight: 600; letter-spacing: .02em; text-transform: uppercase; }
+  .verdict.held { color: var(--good); }
+  .verdict.yielded { color: var(--warn); }
+  .verdict.broke { color: var(--bad); }
+  .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(146px, 1fr)); gap: 1px; background: var(--line-2); }
+  .tile { background: var(--surface); padding: 13px 15px; transition: background .45s ease; min-width: 0; }
+  .tile .v { font-family: var(--f-mono); font-size: clamp(21px, 2.9vw, 28px); font-weight: 600; font-variant-numeric: tabular-nums; line-height: 1.2; margin-top: 3px; }
   .tile .v u { text-decoration: none; font-size: .46em; font-weight: 500; color: var(--muted); margin-left: 4px; }
   .tile.key .v { color: var(--accent); }
-  .results.pending .tile .v { color: var(--muted); opacity: .4; }
+  .results.pending .tile .v, .results.pending .verdict { color: var(--muted); opacity: .4; }
   .results.flash .tile { background: var(--surface-2); }
-  .strengths { padding: 11px 15px; border-top: 1px solid var(--line-2); font-family: var(--f-mono); font-size: 12.5px; color: var(--muted); display: flex; flex-wrap: wrap; gap: 6px 20px; }
+  .strengths { padding: 10px 15px; border-top: 1px solid var(--line-2); font-family: var(--f-mono); font-size: 12px; color: var(--muted); display: flex; flex-wrap: wrap; gap: 5px 18px; }
   .strengths b { color: var(--ink-2); font-weight: 500; }
 
-  /* ---- limits ---- */
-  .limits { margin-top: 16px; padding: 15px; }
-  .limits ul { margin: 0; padding: 0; list-style: none; display: grid; gap: 9px; }
-  .limits li { display: grid; grid-template-columns: 3px 1fr; gap: 10px; font-size: 14px; color: var(--ink-2); line-height: 1.45; }
-  .limits li::before { content: ""; background: var(--accent); border-radius: 1px; }
-  .limits b { color: var(--ink); font-weight: 500; }
-  details { margin-top: 12px; }
-  summary { cursor: pointer; font-family: var(--f-mono); font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--steel); }
-  summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-  details ul { margin-top: 10px; }
-  details li::before { background: var(--steel); }
-
-  footer { margin-top: 20px; font-size: 12.5px; color: var(--muted); }
+  footer { margin-top: 16px; font-size: 12.5px; color: var(--muted); }
   footer a { color: var(--steel); }
   @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
 </style>
 
 <div class="wrap">
-  <header>
-    <h1>Tensile Test Bench</h1>
-    <p class="sub">Give a steel its chemistry. The model predicts what pulling it apart would
-      measure &mdash; read off at the moment it breaks.</p>
-  </header>
+  <h1>Tensile Test Bench</h1>
 
-  <main class="console">
-    <section class="stage">
+  <div class="layout">
+    <aside class="side panel">
+      <div class="body">
+        <div class="modes">
+          <button type="button" class="mode" id="mode-pull" aria-pressed="true">Pull to failure</button>
+          <button type="button" class="mode" id="mode-load" aria-pressed="false">Apply a load</button>
+        </div>
+        <div class="lab" style="margin-bottom:6px">Composition &mdash; wt %</div>
+        <div class="presets" id="presets"></div>
+        <div class="els" id="els"></div>
+      </div>
+
+      <div class="body">
+        <div class="lab" style="margin-bottom:6px">Specimen</div>
+        <div class="geo">
+          <div class="f">
+            <label for="area">Cross-section mm&sup2;</label>
+            <input id="area" type="number" min="0.1" max="100000" step="1" value="78.5">
+          </div>
+          <div class="f">
+            <label for="gauge">Length mm</label>
+            <input id="gauge" type="number" min="1" max="100000" step="5" value="50">
+          </div>
+        </div>
+        <div class="load" id="load-row" hidden style="margin-top:8px">
+          <div class="f">
+            <label for="target">Load to apply &mdash; kN</label>
+            <input id="target" type="number" min="0.1" max="1000000" step="1" value="45">
+          </div>
+        </div>
+        <button class="run" id="run" type="button">Pull to failure</button>
+        <div class="guard" id="guard"></div>
+      </div>
+    </aside>
+
+    <section class="sim">
       <div class="panel">
         <div class="shell">
-          <canvas id="viewport" role="img" aria-label="3D view of the test specimen being pulled to fracture"></canvas>
-          <span class="lab hint">Drag to rotate &middot; scroll to zoom</span>
+          <canvas id="viewport" tabindex="0" role="img"
+                  aria-label="3D view of the test specimen being pulled"></canvas>
+          <span class="lab hint">Drag or arrow keys to rotate &middot; scroll to zoom</span>
           <span class="phase" id="phase">At rest</span>
         </div>
         <div class="live">
           <div><div class="lab">Load</div><div class="v" id="live-force">0.0<u>kN</u></div></div>
           <div><div class="lab">Extension</div><div class="v" id="live-ext">0.00<u>mm</u></div></div>
+          <div><div class="lab">Length</div><div class="v" id="live-len">50.00<u>mm</u></div></div>
         </div>
-        <canvas id="curve" role="img" aria-label="Load-extension curve from zero load to fracture"></canvas>
+        <canvas id="curve" role="img"
+                aria-label="Load-extension curve from zero load to fracture"></canvas>
+      </div>
+
+      <div class="results" id="results" aria-live="polite">
+        <div class="panel">
+          <div class="verdict" id="verdict">&mdash;</div>
+          <div class="tiles" id="tiles"></div>
+          <div class="strengths">
+            <span>Yield strength <b id="s-ys">&mdash;</b></span>
+            <span>Tensile strength <b id="s-uts">&mdash;</b></span>
+            <span>Elongation at break <b id="s-el">&mdash;</b></span>
+            <span>Neck contraction <b id="s-ra">&mdash;</b></span>
+          </div>
+        </div>
       </div>
     </section>
-
-    <aside class="input">
-      <div class="panel">
-        <div class="body">
-          <div class="lab" style="margin-bottom:7px">Composition &mdash; wt %</div>
-          <div class="presets" id="presets"></div>
-          <div class="els" id="els"></div>
-          <button class="run" id="run" type="button">Pull to failure</button>
-          <p class="spec">Standard specimen: round bar, &oslash;10&nbsp;mm, 50&nbsp;mm gauge
-            (ISO&nbsp;6892-1 proportional).</p>
-          <div class="guard" id="guard"></div>
-        </div>
-      </div>
-    </aside>
-  </main>
-
-  <section class="results" id="results" aria-live="polite">
-    <div class="panel">
-      <div class="tiles">
-        <div class="tile key"><div class="lab">Force at yield</div><div class="v" id="r-yf">&mdash;</div></div>
-        <div class="tile key"><div class="lab">Force at break</div><div class="v" id="r-bf">&mdash;</div></div>
-        <div class="tile"><div class="lab">Stretch before break</div><div class="v" id="r-ext">&mdash;</div></div>
-        <div class="tile"><div class="lab">Length at break</div><div class="v" id="r-len">&mdash;</div></div>
-      </div>
-      <div class="strengths">
-        <span>Yield strength <b id="s-ys">&mdash;</b></span>
-        <span>Tensile strength <b id="s-uts">&mdash;</b></span>
-        <span>Cross-section <b id="s-area">78.5 mm&sup2;</b></span>
-      </div>
-    </div>
-  </section>
-
-  <section class="panel limits">
-    <ul>
-      <li><span><b>Only three points are predicted</b> &mdash; yield, maximum load and
-        fracture. The curve drawn between them is a Hollomon power law pinned to those
-        points, not a prediction: no open dataset reports strain at maximum load.</span></li>
-      <li><span><b>Chemistry cannot see heat treatment.</b> The same steel tempered at
-        200&nbsp;&deg;C and at 650&nbsp;&deg;C differs by 500&nbsp;MPa or more and reaches the model as
-        the same input. Read this as what steels of roughly this chemistry usually do.</span></li>
-      <li><span><b>It is already at its ceiling.</b> Bars of identical chemistry scatter
-        107&ndash;191&nbsp;MPa in yield strength, because they differ by processing. The model
-        sits inside that band, so the error is the data's, not the model's.</span></li>
-    </ul>
-    <details>
-      <summary>Further limits</summary>
-      <ul>
-        <li><span>On four of twelve held-out alloy families it did worse than guessing the
-          training median. The check beside the inputs catches out-of-range elements, but a
-          chemistry can sit inside every range and still belong to an unfamiliar family.</span></li>
-        <li><span>Elongation is only comparable within a gauge-length standard, and the
-          training data does not record which one each row used. Millimetres of stretch
-          inherit that; the forces do not.</span></li>
-        <li><span>Trained on 1,359 heats, 55% of them specification minima rather than
-          measurements. Not a substitute for a tensile test, and not for design
-          allowables.</span></li>
-      </ul>
-    </details>
-  </section>
+  </div>
 
   <footer>
-    <a href="https://github.com/DavidDruker/stress-strain-predictor">Model, evaluation and provenance</a>
-    &middot; SteelBench v1.0, CC BY 4.0
+    Chemistry-only prediction from 1,359 heats &middot;
+    <a href="https://github.com/DavidDruker/stress-strain-predictor">model, evaluation and limits</a>
   </footer>
 </div>
 
@@ -215,11 +212,10 @@
   "use strict";
 
   var MODEL = window.SP_MODEL;
-  var E_MODULUS = 205000;
-  var DIA = 10, GAUGE = 50;                 // fixed standard specimen
-  var AREA = Math.PI * Math.pow(DIA / 2, 2);
+  var E_MODULUS = 205000;            // MPa; ~constant for steel, so never modelled
+  var STEEL_DENSITY = 7.85e-6;       // kg/mm^3
 
-  /* ---------- inference: evaluates the exported trees ---------- */
+  /* ================= inference: evaluates the exported trees ================= */
   function buildFeatures(c) {
     var els = MODEL.elements, raw = [], fil = [], i;
     for (i = 0; i < els.length; i++) {
@@ -267,61 +263,79 @@
     if (!(ys < uts)) ys = uts * (1 - Number.EPSILON);
     return { ys: ys, uts: uts, el: comp("elongation", x) };
   }
-  function guardFlags(c) {
-    var out = [];
-    Object.keys(c).forEach(function (el) {
-      var v = c[el], r = MODEL.element_ranges[el];
-      if (v == null || isNaN(v) || !r) return;
-      if (v < r.min || v > r.max) out.push({ el: el, v: v, min: r.min, max: r.max });
-    });
-    return out;
-  }
 
-  /* ---------- geometry: what removes the percentages ---------- */
-  function engineering(p) {
-    var ext = (p.el / 100) * GAUGE;
+  /* ================= engineering quantities ================= */
+  function engineering(p, area, gauge) {
+    var ext = (p.el / 100) * gauge;
     return {
-      yieldForce: p.ys * AREA / 1000, breakForce: p.uts * AREA / 1000,
-      extBreak: ext, finalLength: GAUGE + ext
+      area: area, gauge: gauge,
+      yieldForce: p.ys * area / 1000,          // MPa = N/mm^2 -> kN
+      breakForce: p.uts * area / 1000,
+      extBreak: ext,
+      finalLength: gauge + ext,
+      stiffness: E_MODULUS * area / gauge / 1000,   // kN/mm
+      mass: area * gauge * STEEL_DENSITY,
+      /* How far the neck contracts before it parts. Reduction of area is NOT a
+         model output, but SteelBench reports it for 414 heats, and a least-
+         squares fit over those gives RA% = 0.47*EL% + 31.8 (r = 0.43). Using the
+         data's own relation keeps the animation honest rather than invented. */
+      reductionOfArea: Math.max(0.10, Math.min(0.70, (0.47 * p.el + 31.8) / 100))
     };
   }
+
+  /* Curve through the predicted landmarks. The three marked points are predicted;
+     the path between them is a Hollomon power law closed with the Considere
+     condition and pinned to those points. */
   function curveOf(p, eng) {
     var epsTotal = p.el / 100, epsYield = p.ys / E_MODULUS;
     var n = Math.max(0.02, Math.min(0.30, Math.log(p.uts / p.ys) / 2 + 0.05));
-    var epsUts = Math.min(Math.max(n, epsYield * 2), epsTotal * 0.75);
-    var K = p.uts / Math.pow(Math.max(epsUts, 1e-6), n);
+    var epsUts = Math.min(Math.max(n, epsYield * 2), Math.max(epsTotal * 0.75, epsYield * 1.001));
+    // Ordering must hold even for a brittle prediction, or the hardening branch
+    // is skipped and the drawn maximum lands somewhere the panel never reports.
+    epsUts = Math.max(epsYield * 1.001, Math.min(epsUts, epsTotal * 0.999));
+    var K = p.uts / Math.pow(Math.max(epsUts, 1e-9), n);
+
     var pts = [], N = 240;
     for (var i = 0; i < N; i++) {
       var e = (i / (N - 1)) * epsTotal, s;
       if (e <= epsYield) s = E_MODULUS * e;
       else if (e <= epsUts) s = Math.min(K * Math.pow(e, n), p.uts);
       else { var t = (e - epsUts) / Math.max(epsTotal - epsUts, 1e-9); s = p.uts * (1 - 0.35 * t * t); }
-      pts.push({ x: e * GAUGE, y: s * AREA / 1000, strain: e });
+      pts.push({ x: e * eng.gauge, y: s * eng.area / 1000, strain: e });
     }
     return { pts: pts, epsYield: epsYield, epsUts: epsUts, epsTotal: epsTotal };
   }
 
-  /* ---------- state + elements ---------- */
+  /* ================= state ================= */
   var PRESETS = [
-    { n: "AISI 1045", c: { C: 0.45, Mn: 0.75, Si: 0.25 } },
-    { n: "AISI 4140", c: { C: 0.40, Mn: 0.88, Si: 0.23, Cr: 0.95, Mo: 0.20 } },
+    { n: "1045", c: { C: 0.45, Mn: 0.75, Si: 0.25 } },
+    { n: "4140", c: { C: 0.40, Mn: 0.88, Si: 0.23, Cr: 0.95, Mo: 0.20 } },
     { n: "S355", c: { C: 0.18, Mn: 1.50, Si: 0.40, Cu: 0.30 } },
     { n: "304", c: { C: 0.06, Mn: 1.50, Si: 0.50, Cr: 18.5, Ni: 9.0 } }
   ];
-  var S = { c: {}, p: null, eng: null, curve: null, preset: null };
+  var S = {
+    c: {}, invalid: [], preset: null, mode: "pull",
+    area: 78.5, gauge: 50, target: 45,
+    p: null, eng: null, curve: null
+  };
   var el = {};
-  ["presets", "els", "run", "guard", "curve", "viewport", "phase", "results",
-   "live-force", "live-ext", "r-yf", "r-bf", "r-ext", "r-len", "s-ys", "s-uts", "s-area"]
+  ["presets", "els", "run", "guard", "curve", "viewport", "phase", "results", "tiles",
+   "verdict", "area", "gauge", "target", "load-row", "mode-pull", "mode-load",
+   "live-force", "live-ext", "live-len", "s-ys", "s-uts", "s-el", "s-ra"]
     .forEach(function (id) { el[id] = document.getElementById(id); });
 
   var fmt = function (v, d) { return v.toLocaleString(undefined, { minimumFractionDigits: d, maximumFractionDigits: d }); };
   var unit = function (v, d, u) { return fmt(v, d) + "<u>" + u + "</u>"; };
+  var dp = function (v) { return v >= 1000 ? 0 : v >= 100 ? 1 : 2; };
 
+  /* ---- build the sidebar ---- */
   MODEL.elements.forEach(function (name) {
+    var r = MODEL.element_ranges[name];
     var w = document.createElement("div");
     w.className = "f";
     w.innerHTML = '<label for="el-' + name + '">' + name + '</label>' +
-      '<input id="el-' + name + '" type="number" min="0" step="0.01" inputmode="decimal">';
+      '<input id="el-' + name + '" type="number" min="0" max="100" step="0.01" inputmode="decimal">' +
+      '<span class="rng">' + fmt(r.min, 2) + "–" + fmt(r.max, r.max >= 10 ? 0 : 2) + '</span>';
     el.els.appendChild(w);
     el["el-" + name] = w.querySelector("input");
     el["w-" + name] = w;
@@ -339,69 +353,165 @@
     MODEL.elements.forEach(function (n) { el["el-" + n].value = p.c[n] === undefined ? "" : p.c[n]; });
     read(); recompute(); showResults(); rest();
   }
+
+  function num(input, lo, hi, fallback) {
+    var v = parseFloat(input.value);
+    if (!isFinite(v) || v < lo || v > hi) return { v: fallback, bad: input.value.trim() !== "" };
+    return { v: v, bad: false };
+  }
+
   function read() {
-    var c = {};
+    var c = {}, invalid = [];
     MODEL.elements.forEach(function (n) {
       var raw = el["el-" + n].value.trim();
-      if (raw !== "") { var v = parseFloat(raw); if (!isNaN(v)) c[n] = v; }
+      if (raw === "") return;
+      var v = parseFloat(raw);
+      // Physically impossible values are rejected here rather than passed to the
+      // model and labelled "extrapolation" -- -5 wt% carbon is not an uncertain
+      // input, it is not an input at all.
+      if (!isFinite(v) || v < 0 || v > 100) { invalid.push({ el: n, v: raw }); return; }
+      c[n] = v;
     });
-    S.c = c;
+    S.c = c; S.invalid = invalid;
+
+    var a = num(el.area, 0.1, 1e6, 78.5), g = num(el.gauge, 1, 1e6, 50), t = num(el.target, 0.01, 1e9, 45);
+    S.area = a.v; S.gauge = g.v; S.target = t.v;
+    S.badGeom = a.bad || g.bad || t.bad;
+  }
+
+  function guardLines() {
+    var out = [];
+    S.invalid.forEach(function (f) {
+      out.push({ bad: true, el: f.el, text: f.v + " wt% is not a possible composition. Ignored." });
+    });
+    Object.keys(S.c).forEach(function (e) {
+      var v = S.c[e], r = MODEL.element_ranges[e];
+      if (!r || v === 0) return;   // 0 means "not added", same as leaving it blank
+      if (v > r.max) out.push({ el: e, text: fmt(v, 2) + " wt% is above anything in the training data (max " + fmt(r.max, 2) + "). Extrapolation." });
+      else if (v < r.min) out.push({ el: e, text: fmt(v, 3) + " wt% is below the lowest the model saw (" + fmt(r.min, 2) + ")." });
+    });
+    if (Object.keys(S.c).length === 0 && S.invalid.length === 0) {
+      out.push({ el: null, text: "No composition entered — this is what the model predicts for a steel with nothing specified." });
+    }
+    return out;
+  }
+
+  /* ================= results ================= */
+  var TILES = {
+    pull: [
+      { k: "Force at yield", id: "t-yf", key: true },
+      { k: "Force at break", id: "t-bf", key: true },
+      { k: "Stretch before break", id: "t-ext" },
+      { k: "Length at break", id: "t-len" }
+    ],
+    load: [
+      { k: "Load applied", id: "t-app", key: true },
+      { k: "Stretch under load", id: "t-ext" },
+      { k: "Permanent stretch", id: "t-perm", key: true },
+      { k: "Length after unloading", id: "t-len" }
+    ]
+  };
+  function buildTiles() {
+    el.tiles.innerHTML = "";
+    TILES[S.mode].forEach(function (t) {
+      var d = document.createElement("div");
+      d.className = "tile" + (t.key ? " key" : "");
+      d.innerHTML = '<div class="lab">' + t.k + '</div><div class="v" id="' + t.id + '">&mdash;</div>';
+      el.tiles.appendChild(d);
+      el[t.id] = d.querySelector(".v");
+    });
   }
 
   function recompute() {
     S.p = predict(S.c);
-    S.eng = engineering(S.p);
+    S.eng = engineering(S.p, S.area, S.gauge);
     S.curve = curveOf(S.p, S.eng);
     PRESETS.forEach(function (p) { p.node.setAttribute("aria-pressed", String(p.n === S.preset)); });
 
-    var flags = guardFlags(S.c);
-    MODEL.elements.forEach(function (n) { el["w-" + n].classList.remove("flag"); });
+    MODEL.elements.forEach(function (n) { el["w-" + n].classList.remove("flag", "bad"); });
     el.guard.innerHTML = "";
-    flags.forEach(function (f) {
-      el["w-" + f.el].classList.add("flag");
+    guardLines().forEach(function (f) {
+      if (f.el) el["w-" + f.el].classList.add(f.bad ? "bad" : "flag");
       var d = document.createElement("div");
-      d.className = "flagline";
-      d.innerHTML = "<b>" + f.el + "</b> " + fmt(f.v, 2) + " wt% is outside the trained range (" +
-        fmt(f.min, 2) + "–" + fmt(f.max, 2) + "). Extrapolation.";
+      d.className = "flagline" + (f.bad ? " bad" : "");
+      d.innerHTML = (f.el ? "<b>" + f.el + "</b> " : "") + f.text;
       el.guard.appendChild(d);
     });
-    drawCurve(1);
+    drawCurve(1, null);
   }
 
-  /* Results read off the break, so they are withheld while the bar is still whole. */
-  function showResults() {
-    var e = S.eng;
-    el["r-yf"].innerHTML = unit(e.yieldForce, e.yieldForce < 100 ? 1 : 0, "kN");
-    el["r-bf"].innerHTML = unit(e.breakForce, e.breakForce < 100 ? 1 : 0, "kN");
-    el["r-ext"].innerHTML = unit(e.extBreak, 1, "mm");
-    el["r-len"].innerHTML = unit(e.finalLength, 1, "mm");
-    el["s-ys"].textContent = fmt(S.p.ys, 0) + " MPa";
-    el["s-uts"].textContent = fmt(S.p.uts, 0) + " MPa";
+  /* The outcome of loading to a target force. Under dead load the specimen is
+     unstable the instant the applied force reaches the maximum it can carry, so
+     that is the rupture criterion -- not the fracture strain. */
+  function loadOutcome() {
+    var e = S.eng, F = S.target;
+    if (F >= e.breakForce) return { broke: true, peak: e.breakForce };
+    var pts = S.curve.pts, i, hit = pts[pts.length - 1];
+    for (i = 0; i < pts.length; i++) {
+      if (pts[i].strain > S.curve.epsUts) break;
+      if (pts[i].y >= F) { hit = pts[i]; break; }
+    }
+    var elastic = F / e.stiffness;
+    var permanent = Math.max(0, hit.x - elastic);
+    return {
+      broke: false, peak: F, ext: hit.x, strain: hit.strain,
+      permanent: permanent, yielded: F > e.yieldForce,
+      finalLength: e.gauge + permanent
+    };
+  }
+
+  function showResults(outcome) {
+    var e = S.eng, p = S.p;
+    if (S.mode === "pull") {
+      el["t-yf"].innerHTML = unit(e.yieldForce, dp(e.yieldForce), "kN");
+      el["t-bf"].innerHTML = unit(e.breakForce, dp(e.breakForce), "kN");
+      el["t-ext"].innerHTML = unit(e.extBreak, 1, "mm");
+      el["t-len"].innerHTML = unit(e.finalLength, 1, "mm");
+      el.verdict.className = "verdict broke";
+      el.verdict.textContent = "Ruptures at " + fmt(e.breakForce, dp(e.breakForce)) + " kN";
+    } else {
+      var o = outcome || loadOutcome();
+      el["t-app"].innerHTML = unit(o.peak, dp(o.peak), "kN");
+      el["t-ext"].innerHTML = o.broke ? "&mdash;" : unit(o.ext, 2, "mm");
+      el["t-perm"].innerHTML = o.broke ? "&mdash;" : unit(o.permanent, 2, "mm");
+      el["t-len"].innerHTML = o.broke ? "&mdash;" : unit(o.finalLength, 2, "mm");
+      if (o.broke) {
+        el.verdict.className = "verdict broke";
+        el.verdict.textContent = "Ruptures — it carries " + fmt(e.breakForce, dp(e.breakForce)) + " kN at most";
+      } else if (o.yielded) {
+        el.verdict.className = "verdict yielded";
+        el.verdict.textContent = "Holds, but yields — " + fmt(o.permanent, 2) + " mm stays";
+      } else {
+        el.verdict.className = "verdict held";
+        el.verdict.textContent = "Holds — springs back to " + fmt(e.gauge, 2) + " mm";
+      }
+    }
+    el["s-ys"].textContent = fmt(p.ys, 0) + " MPa";
+    el["s-uts"].textContent = fmt(p.uts, 0) + " MPa";
+    el["s-el"].textContent = fmt(p.el, 1) + " %";
+    el["s-ra"].textContent = fmt(e.reductionOfArea * 100, 0) + " %";
     el.results.classList.remove("pending");
   }
   function hideResults() { el.results.classList.add("pending"); }
 
-  /* ---------- load–extension curve ---------- */
+  /* ================= load-extension curve ================= */
   var cc = el.curve.getContext("2d");
   var css = function (n) { return getComputedStyle(document.documentElement).getPropertyValue(n).trim(); };
 
-  function drawCurve(progress) {
+  function drawCurve(progress, marker) {
     var dpr = Math.min(window.devicePixelRatio || 1, 2);
     var w = el.curve.clientWidth, h = el.curve.clientHeight;
     if (!w) return;
-    // Assigning canvas.width reallocates the backing store and clears it, so it
-    // belongs in a resize check -- doing it per frame cost more than the drawing.
     var cw = Math.round(w * dpr), ch = Math.round(h * dpr);
-    if (el.curve.width !== cw || el.curve.height !== ch) {
-      el.curve.width = cw; el.curve.height = ch;
-    }
+    if (el.curve.width !== cw || el.curve.height !== ch) { el.curve.width = cw; el.curve.height = ch; }
     cc.setTransform(dpr, 0, 0, dpr, 0, 0);
     cc.clearRect(0, 0, w, h);
     if (!S.curve) return;
 
-    var padL = 46, padR = 14, padT = 16, padB = 24, i;
+    var padL = 52, padR = 14, padT = 18, padB = 24, i;
     var pts = S.curve.pts;
     var maxX = pts[pts.length - 1].x * 1.05, maxY = S.eng.breakForce * 1.18;
+    if (S.mode === "load") maxY = Math.max(maxY, S.target * 1.1);
     var X = function (v) { return padL + (v / maxX) * (w - padL - padR); };
     var Y = function (v) { return h - padB - (v / maxY) * (h - padT - padB); };
 
@@ -418,10 +528,8 @@
       cc.textAlign = "center"; cc.textBaseline = "top";
       cc.fillText(fmt(xv, xv < 10 ? 1 : 0), X(xv), h - padB + 6);
     }
-    cc.textAlign = "left"; cc.textBaseline = "top";
-    cc.fillText("kN", 6, 6);
-    cc.textAlign = "right";
-    cc.fillText("mm", w - padR, h - 11);
+    cc.textAlign = "left"; cc.textBaseline = "top"; cc.fillText("kN", 6, 7);
+    cc.textAlign = "right"; cc.fillText("mm", w - padR, h - 11);
 
     cc.strokeStyle = css("--muted"); cc.beginPath();
     cc.moveTo(padL, padT); cc.lineTo(padL, h - padB); cc.lineTo(w - padR, h - padB); cc.stroke();
@@ -437,7 +545,7 @@
 
     function mark(strain, force, label, colour) {
       if (pts[last - 1].strain < strain - 1e-9) return;
-      var px = X(strain * GAUGE), py = Y(force);
+      var px = X(strain * S.eng.gauge), py = Y(force);
       cc.fillStyle = colour;
       cc.beginPath(); cc.arc(px, py, 3.4, 0, Math.PI * 2); cc.fill();
       cc.font = '600 9.5px "IBM Plex Mono", monospace';
@@ -446,19 +554,27 @@
     }
     mark(S.curve.epsYield, S.eng.yieldForce, "YIELD", css("--steel"));
     mark(S.curve.epsUts, S.eng.breakForce, "MAX", css("--accent"));
-    if (progress >= 0.999) {
-      var pe = pts[pts.length - 1];
-      cc.fillStyle = css("--ink");
-      cc.beginPath(); cc.arc(X(pe.x), Y(pe.y), 3.2, 0, Math.PI * 2); cc.fill();
+
+    // In load mode, show the target as a line the trace climbs toward.
+    if (S.mode === "load" && S.target > 0) {
+      var ty = Y(Math.min(S.target, maxY));
+      cc.setLineDash([4, 4]); cc.strokeStyle = css("--steel"); cc.lineWidth = 1.4;
+      cc.beginPath(); cc.moveTo(padL, ty); cc.lineTo(w - padR, ty); cc.stroke();
+      cc.setLineDash([]);
+      cc.fillStyle = css("--steel");
       cc.font = '600 9.5px "IBM Plex Mono", monospace';
-      cc.textAlign = "right"; cc.textBaseline = "top";
-      cc.fillText("BREAK", X(pe.x) - 5, Y(pe.y) + 5);
+      cc.textAlign = "left"; cc.textBaseline = "bottom";
+      cc.fillText("APPLIED " + fmt(S.target, 0) + " kN", padL + 4, ty - 4);
+    }
+    if (marker) {
+      cc.fillStyle = css("--ink");
+      cc.beginPath(); cc.arc(X(marker.x), Y(marker.y), 3.6, 0, Math.PI * 2); cc.fill();
     }
   }
 
-  /* ---------- 3D specimen, freely orbited ---------- */
+  /* ================= 3D specimen ================= */
   var renderer, scene, camera, barA, barB, gripL, gripR;
-  var GH = 1.15, ENDL = 0.62;
+  var GH = 1.2, ENDL = 0.62, RINGS = 56, SEG = 30;
   var orbit = { az: 0.42, pol: 1.16, dist: 5.5 };
 
   function initThree() {
@@ -482,62 +598,13 @@
     gripL = new THREE.Mesh(jaw, grip); gripR = new THREE.Mesh(jaw, grip);
     scene.add(gripL, gripR);
 
-    bindOrbit();
-    updateCamera();
-    resize();
-    window.addEventListener("resize", function () { resize(); drawCurve(prog); });
+    bindOrbit(); updateCamera(); resize();
+    window.addEventListener("resize", function () { resize(); drawCurve(prog, null); });
   }
-
-  function updateCamera() {
-    var sp = Math.sin(orbit.pol), cp = Math.cos(orbit.pol);
-    camera.position.set(orbit.dist * sp * Math.sin(orbit.az), orbit.dist * cp, orbit.dist * sp * Math.cos(orbit.az));
-    camera.lookAt(0, 0, 0);
-  }
-
-  /* Hand-rolled orbit: a few lines, and avoids depending on a controls file
-     that the CDN allowlist may not carry. */
-  function bindOrbit() {
-    var dragging = false, lx = 0, ly = 0;
-    el.viewport.addEventListener("pointerdown", function (e) {
-      dragging = true; lx = e.clientX; ly = e.clientY;
-      el.viewport.setPointerCapture(e.pointerId);
-    });
-    el.viewport.addEventListener("pointermove", function (e) {
-      if (!dragging) return;
-      orbit.az -= (e.clientX - lx) * 0.008;
-      orbit.pol = Math.max(0.12, Math.min(Math.PI - 0.12, orbit.pol - (e.clientY - ly) * 0.008));
-      lx = e.clientX; ly = e.clientY;
-      updateCamera(); render();
-    });
-    ["pointerup", "pointercancel", "pointerleave"].forEach(function (ev) {
-      el.viewport.addEventListener(ev, function () { dragging = false; });
-    });
-    el.viewport.addEventListener("wheel", function (e) {
-      e.preventDefault();
-      orbit.dist = Math.max(2.6, Math.min(11, orbit.dist + Math.sign(e.deltaY) * 0.42));
-      updateCamera(); render();
-    }, { passive: false });
-  }
-
-  function resize() {
-    var w = el.viewport.clientWidth, h = el.viewport.clientHeight;
-    if (!w || !h) return;
-    renderer.setSize(w, h, false);
-    camera.aspect = w / h; camera.updateProjectionMatrix();
-    render();
-  }
-
-  /* The specimen is allocated ONCE as a ring grid and deformed in place each
-     frame. Rebuilding a LatheGeometry per frame allocated a quarter of a million
-     vertices per second and re-uploaded them to the GPU, which on integrated
-     graphics dropped the animation to a crawl -- the bar appeared to hang with
-     the button stuck disabled. Writing into an existing buffer costs nothing. */
-  var RINGS = 40, SEG = 28;
 
   function makeTube() {
     var g = new THREE.BufferGeometry();
-    var n = RINGS * SEG + 2;                       // + one centre per end cap
-    g.setAttribute("position", new THREE.BufferAttribute(new Float32Array(n * 3), 3));
+    g.setAttribute("position", new THREE.BufferAttribute(new Float32Array((RINGS * SEG + 2) * 3), 3));
     var idx = [], i, j;
     for (i = 0; i < RINGS - 1; i++) {
       for (j = 0; j < SEG; j++) {
@@ -555,12 +622,30 @@
     return g;
   }
 
-  /* Radius and axial position at parameter t along one half of the bar. */
-  function profileAt(t, strain, neck, gaugeHalf, r0) {
-    var rU = r0 / Math.sqrt(1 + Math.max(strain, 0)), rG = r0 * 1.85, y, r;
+  var COS = [], SIN = [];
+  for (var _s = 0; _s < SEG; _s++) { COS.push(Math.cos(_s / SEG * Math.PI * 2)); SIN.push(Math.sin(_s / SEG * Math.PI * 2)); }
+
+  /**
+   * Radius and axial position along one half of the bar.
+   *
+   * The necking model follows what a ductile steel actually does:
+   *  - up to maximum load the gauge length thins UNIFORMLY (constant volume),
+   *  - past maximum load deformation localises into a neck about 1.4 diameters
+   *    wide -- set by the current diameter, not by the gauge length -- and the
+   *    rest of the bar stops stretching,
+   *  - the neck contracts to the reduction of area the training data reports for
+   *    this ductility (RA% = 0.47*EL% + 31.8), which for a typical steel is
+   *    around 40-45%: far more than a token waist.
+   */
+  function profileAt(t, uniform, neck, gaugeHalf, r0, rNeckMin) {
+    var rU = r0 / Math.sqrt(1 + Math.max(uniform, 0)), rG = r0 * 1.85, y, r;
     if (t <= 0.72) {
       y = t / 0.72 * gaugeHalf;
-      r = rU * (neck > 0 ? 1 - neck * Math.exp(-Math.pow(y / (gaugeHalf * 0.30), 2)) : 1);
+      if (neck > 0) {
+        var width = Math.max(1.4 * rU, gaugeHalf * 0.10);   // ~1.4 diameters
+        var shape = Math.exp(-Math.pow(y / width, 2));
+        r = rU - (rU - rNeckMin) * neck * shape;
+      } else r = rU;
     } else if (t <= 0.86) {
       var u = (t - 0.72) / 0.14;
       y = gaugeHalf + u * ENDL * 0.45;
@@ -570,155 +655,284 @@
       y = gaugeHalf + ENDL * 0.45 + v * ENDL * 0.55;
       r = rG;
     }
-    return { y: y, r: Math.max(r, 0.004) };
+    return { y: y, r: Math.max(r, 0.002) };
   }
 
-  var COS = [], SIN = [];
-  for (var _s = 0; _s < SEG; _s++) {
-    COS.push(Math.cos(_s / SEG * Math.PI * 2));
-    SIN.push(Math.sin(_s / SEG * Math.PI * 2));
-  }
-
-  function deform(mesh, sign, strain, neck, gaugeHalf, r0) {
-    var pos = mesh.geometry.attributes.position, arr = pos.array, i, j, k = 0;
-    var first = null, last = null;
+  /**
+   * Cup and cone.
+   *
+   * A ductile bar does not part on a flat plane. Voids nucleate at inclusions in
+   * the centre of the neck where stress triaxiality peaks, coalesce into a
+   * penny-shaped crack normal to the axis, and that flat fibrous zone runs
+   * outward until the remaining ligament fails in shear at roughly 45 degrees to
+   * the surface. One face ends up a cup, the mating face a cone that sits in it.
+   *
+   * Both cap centres are therefore displaced the SAME way along the axis: one
+   * half's cone protrudes, the other half's cup recedes, and they nest.
+   */
+  function deform(mesh, sign, uniform, neck, gaugeHalf, r0, rNeckMin, capShift) {
+    var pos = mesh.geometry.attributes.position, arr = pos.array, i, j, k = 0, first = null, last = null;
     for (i = 0; i < RINGS; i++) {
-      var pr = profileAt(i / (RINGS - 1), strain, neck, gaugeHalf, r0);
+      var pr = profileAt(i / (RINGS - 1), uniform, neck, gaugeHalf, r0, rNeckMin);
       if (i === 0) first = pr;
       if (i === RINGS - 1) last = pr;
       var x = sign * pr.y;
-      for (j = 0; j < SEG; j++) {
-        arr[k++] = x; arr[k++] = pr.r * COS[j]; arr[k++] = pr.r * SIN[j];
-      }
+      // Shear lip: the last sliver before the free surface tilts, so the rim of
+      // the fracture face is drawn back rather than cut square.
+      if (capShift !== 0 && i === 0) x += capShift * 0.22;
+      for (j = 0; j < SEG; j++) { arr[k++] = x; arr[k++] = pr.r * COS[j]; arr[k++] = pr.r * SIN[j]; }
     }
-    arr[k++] = sign * first.y; arr[k++] = 0; arr[k++] = 0;   // cap at the break
-    arr[k++] = sign * last.y; arr[k++] = 0; arr[k++] = 0;    // cap at the grip
+    arr[k++] = sign * first.y + capShift; arr[k++] = 0; arr[k++] = 0;
+    arr[k++] = sign * last.y; arr[k++] = 0; arr[k++] = 0;
     pos.needsUpdate = true;
     mesh.geometry.computeVertexNormals();
     mesh.geometry.computeBoundingSphere();
   }
 
-  function build(strain, neck, split) {
-    if (!barA) return;          // no 3D view; the numbers and curve still work
-    var r0 = (DIA / GAUGE) * GH;
-    var gh = GH * (1 + strain);
-    deform(barA, 1, strain, neck, gh, r0);
-    deform(barB, -1, strain, neck, gh, r0);
+  function build(uniform, neck, split, fractured) {
+    if (!barA) return;
+    var dia = 2 * Math.sqrt(S.area / Math.PI);
+    var r0 = Math.min(0.75, Math.max(0.045, (dia / S.gauge) * GH));
+    var gh = GH * (1 + uniform);
+    var rU = r0 / Math.sqrt(1 + Math.max(uniform, 0));
+    var rNeckMin = rU * Math.sqrt(1 - (S.eng ? S.eng.reductionOfArea : 0.44));
+    var capShift = fractured ? -Math.max(rNeckMin * 0.85, 0.01) : 0;
+
+    deform(barA, 1, uniform, neck, gh, r0, rNeckMin, capShift);
+    deform(barB, -1, uniform, neck, gh, r0, rNeckMin, capShift);
     barA.position.x = split; barB.position.x = -split;
     var end = gh + ENDL + split;
     gripR.position.x = end + 0.15; gripL.position.x = -end - 0.15;
   }
 
+  function updateCamera() {
+    var sp = Math.sin(orbit.pol), cp = Math.cos(orbit.pol);
+    camera.position.set(orbit.dist * sp * Math.sin(orbit.az), orbit.dist * cp, orbit.dist * sp * Math.cos(orbit.az));
+    camera.lookAt(0, 0, 0);
+  }
+
+  function bindOrbit() {
+    var dragging = false, lx = 0, ly = 0;
+    el.viewport.addEventListener("pointerdown", function (e) {
+      dragging = true; lx = e.clientX; ly = e.clientY; el.viewport.setPointerCapture(e.pointerId);
+    });
+    el.viewport.addEventListener("pointermove", function (e) {
+      if (!dragging) return;
+      orbit.az -= (e.clientX - lx) * 0.008;
+      orbit.pol = Math.max(0.12, Math.min(Math.PI - 0.12, orbit.pol - (e.clientY - ly) * 0.008));
+      lx = e.clientX; ly = e.clientY; updateCamera(); render();
+    });
+    ["pointerup", "pointercancel", "pointerleave"].forEach(function (ev) {
+      el.viewport.addEventListener(ev, function () { dragging = false; });
+    });
+    el.viewport.addEventListener("wheel", function (e) {
+      e.preventDefault();
+      orbit.dist = Math.max(2.6, Math.min(11, orbit.dist + Math.sign(e.deltaY) * 0.42));
+      updateCamera(); render();
+    }, { passive: false });
+    // Keyboard orbit: the drag hint is useless to anyone not using a mouse.
+    el.viewport.addEventListener("keydown", function (e) {
+      var k = e.key, step = 0.09, used = true;
+      if (k === "ArrowLeft") orbit.az -= step;
+      else if (k === "ArrowRight") orbit.az += step;
+      else if (k === "ArrowUp") orbit.pol = Math.max(0.12, orbit.pol - step);
+      else if (k === "ArrowDown") orbit.pol = Math.min(Math.PI - 0.12, orbit.pol + step);
+      else if (k === "+" || k === "=") orbit.dist = Math.max(2.6, orbit.dist - 0.4);
+      else if (k === "-" || k === "_") orbit.dist = Math.min(11, orbit.dist + 0.4);
+      else used = false;
+      if (used) { e.preventDefault(); updateCamera(); render(); }
+    });
+  }
+
+  function resize() {
+    var w = el.viewport.clientWidth, h = el.viewport.clientHeight;
+    if (!w || !h || !renderer) return;
+    renderer.setSize(w, h, false);
+    camera.aspect = w / h; camera.updateProjectionMatrix();
+    render();
+  }
   function render() { if (renderer) renderer.render(scene, camera); }
 
+  function liveReadout(force, ext) {
+    el["live-force"].innerHTML = unit(force, dp(force), "kN");
+    el["live-ext"].innerHTML = unit(ext, 2, "mm");
+    el["live-len"].innerHTML = unit(S.gauge + ext, 2, "mm");
+  }
   function rest() {
-    build(0, 0, 0);
-    el["live-force"].innerHTML = unit(0, 1, "kN");
-    el["live-ext"].innerHTML = unit(0, 2, "mm");
+    build(0, 0, 0, false);
+    liveReadout(0, 0);
     el.phase.textContent = "At rest";
     render();
   }
 
-  /* ---------- the pull ---------- */
+  /* ================= the test ================= */
   var prog = 1, busy = false;
+  function finish() { busy = false; el.run.disabled = false; }
 
   function run() {
     if (busy || !S.curve) return;
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-      build(S.curve.epsTotal * 2.4 * 0.96, 0.9, 0.3);
-      el.phase.textContent = "Fractured";
-      drawCurve(1); render(); showResults();
+    var reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (S.mode === "load") return runLoad(reduced);
+    return runPull(reduced);
+  }
+
+  function runPull(reduced) {
+    var c = S.curve, e = S.eng;
+    if (reduced) {
+      build(c.epsTotal * 2.2, 1, 0.34, true);
+      el.phase.textContent = "Fractured"; liveReadout(0, e.extBreak);
+      drawCurve(1, null); render(); showResults();
       return;
     }
-    busy = true; el.run.disabled = true;
-    hideResults();
-    var pts = S.curve.pts, dur = 2600, t0 = null;
+    busy = true; el.run.disabled = true; hideResults();
+    var pts = c.pts, dur = 3000, t0 = null;
 
     function frame(now) {
-      // Seed the clock from the FIRST frame, not from performance.now() at click
-      // time. The rAF timestamp is the start of the current frame's rendering
-      // cycle, which is allowed to precede the moment the callback was
-      // registered -- and does whenever the click lands inside a frame already
-      // in flight. Mixing the two clocks made k negative, so pts[-1] was
-      // undefined and the first frame threw: about one click in four, and every
-      // click on a slow machine.
       if (t0 === null) t0 = now;
-      // Watchdog: on very slow hardware, finish rather than crawl. A disabled
-      // button and a bar that never breaks is the worst failure this page has.
-      if (now - t0 > 12000) { snap(); return; }
+      if (now - t0 > 14000) { snap(); return; }
       var k = Math.max(0, Math.min(1, (now - t0) / dur));
       var p = pts[Math.min(pts.length - 1, Math.floor(k * (pts.length - 1)))];
-      var neck = p.strain > S.curve.epsUts
-        ? Math.min(0.72, (p.strain - S.curve.epsUts) / Math.max(S.curve.epsTotal - S.curve.epsUts, 1e-6) * 0.72)
-        : 0;
-      build(p.strain * 2.4, neck, 0);       // stretch exaggerated to stay legible
-      el["live-force"].innerHTML = unit(p.y, p.y < 100 ? 1 : 0, "kN");
-      el["live-ext"].innerHTML = unit(p.x, 2, "mm");
-      el.phase.textContent = p.strain <= S.curve.epsYield ? "Elastic"
-        : p.strain <= S.curve.epsUts ? "Yielding" : "Necking";
-      drawCurve(k); render(); prog = k;
+
+      // Up to maximum load the bar thins uniformly; past it, the neck takes over
+      // and the rest of the gauge stops elongating. Localisation is unstable, so
+      // the neck deepens faster than linearly once it starts.
+      var uniform, neck;
+      if (p.strain <= c.epsUts) { uniform = p.strain; neck = 0; }
+      else {
+        uniform = c.epsUts;
+        var f = (p.strain - c.epsUts) / Math.max(c.epsTotal - c.epsUts, 1e-9);
+        neck = Math.pow(f, 0.65);
+      }
+      build(uniform * 2.2, neck, 0, false);
+      liveReadout(p.y, p.x);
+      el.phase.textContent = p.strain <= c.epsYield ? "Elastic"
+        : p.strain <= c.epsUts ? "Work hardening" : "Necking";
+      drawCurve(k, p); render(); prog = k;
       if (k < 1) requestAnimationFrame(safeFrame); else snap();
     }
     function safeFrame(now) {
       try { frame(now); }
-      catch (err) {
-        // Restore a coherent state, not just the button. hideResults() has
-        // already run, so re-enabling alone would leave the panel greyed out
-        // for good and the page looking like the click did nothing.
-        showResults();
-        el.phase.textContent = "Fractured";
-        finish();
-        throw err;
-      }
+      catch (err) { showResults(); el.phase.textContent = "Fractured"; finish(); throw err; }
     }
     requestAnimationFrame(safeFrame);
   }
 
-  function finish() { busy = false; el.run.disabled = false; }
-
+  /* Fracture: the crack runs from the centre of the neck outward, the halves
+     spring back by the elastic strain they were holding, and they separate. */
   function snap() {
-    var t0 = null, dur = 560, shown = S.curve.epsTotal * 2.4;
+    var t0 = null, dur = 700, c = S.curve;
     el.phase.textContent = "Fractured";
-    el["live-force"].innerHTML = unit(0, 1, "kN");
-    // The reading is taken at the break: that is when the numbers arrive.
+    liveReadout(0, S.eng.extBreak);
     showResults();
     el.results.classList.add("flash");
     setTimeout(function () { el.results.classList.remove("flash"); }, 520);
+
     function frame(now) {
-      if (t0 === null) t0 = now;                       // same clock, same reason
-      var k = Math.max(0, Math.min(1, (now - t0) / dur)), e = 1 - Math.pow(1 - k, 3);
-      build(shown * (1 - 0.035 * e), 0.72 + 0.2 * e, 0.3 * e);
+      if (t0 === null) t0 = now;
+      var k = Math.max(0, Math.min(1, (now - t0) / dur)), ease = 1 - Math.pow(1 - k, 3);
+      var springback = 1 - 0.012 * ease;               // elastic recovery on parting
+      build(c.epsUts * 2.2 * springback, 1, 0.34 * ease, true);
       render();
       if (k < 1) requestAnimationFrame(safeFrame); else finish();
     }
-    // This was the one unprotected rAF in the file: a throw here could strand
-    // the control with no way back.
+    function safeFrame(now) { try { frame(now); } catch (err) { finish(); throw err; } }
+    requestAnimationFrame(safeFrame);
+  }
+
+  /* Load mode: force rises at a constant rate until the target is reached or the
+     bar can no longer carry it. */
+  function runLoad(reduced) {
+    var o = loadOutcome(), c = S.curve, e = S.eng;
+    if (reduced) {
+      if (o.broke) { build(c.epsUts * 2.2, 1, 0.34, true); el.phase.textContent = "Fractured"; liveReadout(0, e.extBreak); }
+      else { build(o.strain * 2.2, 0, 0, false); el.phase.textContent = "Holding"; liveReadout(o.peak, o.ext); }
+      drawCurve(1, null); render(); showResults(o);
+      return;
+    }
+    busy = true; el.run.disabled = true; hideResults();
+
+    var peak = o.broke ? e.breakForce : S.target;
+    var dur = 2400, t0 = null, pts = c.pts;
+
+    function frame(now) {
+      if (t0 === null) t0 = now;
+      if (now - t0 > 14000) { settle(o); return; }
+      var k = Math.max(0, Math.min(1, (now - t0) / dur));
+      var F = peak * k;                                  // constant dF/dt
+      var hit = pts[0], i;
+      for (i = 0; i < pts.length; i++) {
+        if (pts[i].strain > c.epsUts) break;
+        if (pts[i].y <= F) hit = pts[i]; else break;
+      }
+      var uniform = Math.min(hit.strain, c.epsUts);
+      build(uniform * 2.2, 0, 0, false);
+      liveReadout(F, hit.x);
+      el.phase.textContent = F < e.yieldForce ? "Elastic" : "Yielding";
+      drawCurve(Math.min(1, hit.strain / c.epsTotal), { x: hit.x, y: F });
+      render();
+      if (k < 1) requestAnimationFrame(safeFrame);
+      else if (o.broke) snap();
+      else settle(o);
+    }
     function safeFrame(now) {
-      try { frame(now); } catch (err) { finish(); throw err; }
+      try { frame(now); }
+      catch (err) { showResults(o); finish(); throw err; }
     }
     requestAnimationFrame(safeFrame);
   }
 
-  /* ---------- wiring ---------- */
+  /* Target reached without rupture: release the load and show what stays. */
+  function settle(o) {
+    var t0 = null, dur = 700;
+    el.phase.textContent = o.yielded ? "Unloading — permanent set" : "Unloading — springs back";
+    showResults(o);
+    el.results.classList.add("flash");
+    setTimeout(function () { el.results.classList.remove("flash"); }, 520);
+
+    function frame(now) {
+      if (t0 === null) t0 = now;
+      var k = Math.max(0, Math.min(1, (now - t0) / dur)), ease = 1 - Math.pow(1 - k, 3);
+      var strainNow = o.strain - (o.strain - o.permanent / S.gauge) * ease;
+      build(strainNow * 2.2, 0, 0, false);
+      liveReadout(o.peak * (1 - ease), strainNow * S.gauge);
+      render();
+      if (k < 1) requestAnimationFrame(safeFrame);
+      else { el.phase.textContent = o.yielded ? "Permanently stretched" : "Unchanged"; finish(); }
+    }
+    function safeFrame(now) { try { frame(now); } catch (err) { finish(); throw err; } }
+    requestAnimationFrame(safeFrame);
+  }
+
+  /* ================= wiring ================= */
+  function setMode(mode) {
+    S.mode = mode;
+    el["mode-pull"].setAttribute("aria-pressed", String(mode === "pull"));
+    el["mode-load"].setAttribute("aria-pressed", String(mode === "load"));
+    el["load-row"].hidden = mode !== "load";
+    el.run.textContent = mode === "pull" ? "Pull to failure" : "Apply the load";
+    buildTiles(); read(); recompute(); showResults(); rest();
+  }
+  el["mode-pull"].addEventListener("click", function () { setMode("pull"); });
+  el["mode-load"].addEventListener("click", function () { setMode("load"); });
+
   MODEL.elements.forEach(function (n) {
     el["el-" + n].addEventListener("input", function () {
       S.preset = null; read(); recompute(); showResults(); rest();
     });
   });
+  [el.area, el.gauge, el.target].forEach(function (input) {
+    input.addEventListener("input", function () { read(); recompute(); showResults(); rest(); });
+  });
   el.run.addEventListener("click", run);
   var mq = window.matchMedia("(prefers-color-scheme: dark)");
-  (mq.addEventListener ? mq.addEventListener.bind(mq, "change") : mq.addListener.bind(mq))(function () { drawCurve(prog); });
+  (mq.addEventListener ? mq.addEventListener.bind(mq, "change") : mq.addListener.bind(mq))(function () { drawCurve(prog, null); });
 
-  // Seed the numbers BEFORE the 3D view. The chemistry prediction needs neither
-  // three.js nor WebGL, so losing the entire page because a CDN is blocked, a
-  // GPU is blacklisted or hardware acceleration is off would be gratuitous --
-  // and it fails silently, looking like a page that loaded correctly and does
-  // nothing. With this order the readout, the guard and the curve all survive.
+  // Numbers first: the prediction needs neither three.js nor WebGL, so a blocked
+  // CDN or a disabled GPU must not take the whole page with it.
+  buildTiles();
   apply(PRESETS[1]);
-  try {
-    initThree();
-    rest();
-  } catch (err) {
+  try { initThree(); rest(); }
+  catch (err) {
     el.viewport.hidden = true;
     el.phase.textContent = "3D view unavailable";
     var hint = document.querySelector(".hint");

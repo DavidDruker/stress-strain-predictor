@@ -114,15 +114,20 @@ async function load(page, url) {
 const readResults = (page) => page.evaluate(() => {
   const txt = (id) => (document.getElementById(id)?.textContent || "").trim();
   const num = (id) => {
+    if (!document.getElementById(id)) return null;
     const t = txt(id).replace(/[^\d.,-]/g, "").replace(/,/g, "");
     const v = parseFloat(t);
     return Number.isFinite(v) ? v : null;
   };
   return {
-    yieldForce: num("r-yf"), breakForce: num("r-bf"),
-    stretch: num("r-ext"), finalLength: num("r-len"),
-    ys: num("s-ys"), uts: num("s-uts"),
-    rawYf: txt("r-yf"), rawBf: txt("r-bf"),
+    // Tile ids differ by mode: pull shows yield/break force, load shows the
+    // applied load and what stays behind. Read whichever the panel is in.
+    yieldForce: num("t-yf") ?? num("t-app"), breakForce: num("t-bf") ?? num("t-app"),
+    stretch: num("t-ext"), finalLength: num("t-len"),
+    permanent: num("t-perm"),
+    ys: num("s-ys"), uts: num("s-uts"), elong: num("s-el"),
+    rawYf: txt("t-yf") || txt("t-app"), rawBf: txt("t-bf") || txt("t-app"),
+    verdict: txt("verdict"),
     phase: txt("phase"),
     guards: [...document.querySelectorAll("#guard .flagline")].map((n) => n.textContent.trim()),
     runDisabled: document.getElementById("run")?.disabled,
@@ -516,6 +521,67 @@ async function checkDegradesWithoutThree(browser, url) {
   await page.close();
 }
 
+async function checkLoadMode(browser, url) {
+  /* Applying a dead load has three honest outcomes, and the page must pick the
+     right one: below yield it springs back, between yield and maximum it keeps a
+     permanent set, at or above the maximum it parts. Under load control the bar
+     is unstable the moment the applied force reaches the maximum it can carry,
+     so that is the rupture criterion -- not the fracture strain. */
+  const page = await newPage(browser);
+  await load(page, url);
+  await page.click("#mode-load");
+  await sleep(250);
+
+  const base = await readResults(page);
+  const yieldF = base.ys * 78.5 / 1000;      // default specimen: 78.5 mm^2
+  const breakF = base.uts * 78.5 / 1000;
+
+  const cases = [
+    { name: "below yield", kN: yieldF * 0.6, want: /hold/i, permanentZero: true },
+    { name: "between yield and max", kN: (yieldF + breakF) / 2, want: /yield/i },
+    { name: "above maximum", kN: breakF * 1.2, want: /ruptur/i },
+  ];
+
+  for (const c of cases) {
+    await page.evaluate((v) => {
+      const t = document.getElementById("target");
+      t.value = String(v); t.dispatchEvent(new Event("input", { bubbles: true }));
+    }, Math.round(c.kN * 10) / 10);
+    await sleep(200);
+    await page.click("#run");
+
+    let settled = false;
+    for (let i = 0; i < 40; i += 1) {
+      if ((await readResults(page)).runDisabled === false) { settled = true; break; }
+      await sleep(400);
+    }
+    const r = await readResults(page);
+    if (!settled) {
+      fail("critical", "load-mode", `"${c.name}" never settled`, r, "The load ramp left the control disabled.");
+      continue;
+    }
+    if (!c.want.test(r.verdict || "")) {
+      fail("high", "load-mode", `"${c.name}" gave the wrong verdict: "${r.verdict}"`,
+        { applied: c.kN, yieldF, breakF, r },
+        "Check loadOutcome(): below yield should hold elastically, between yield and "
+        + "maximum should keep a permanent set, at or above maximum should rupture.");
+      continue;
+    }
+    if (c.permanentZero && r.permanent !== null && r.permanent > 0.02) {
+      fail("medium", "load-mode", `"${c.name}" reported ${r.permanent} mm permanent set below yield`,
+        r, "An elastic load must leave no permanent stretch.");
+      continue;
+    }
+    if (page.__errors.length) {
+      fail("high", "load-mode", `"${c.name}" threw`, page.__errors.slice(-3), "Fix the thrown error.");
+      page.__errors.length = 0;
+      continue;
+    }
+    ok("load-mode", `${c.name}: "${r.verdict}"`);
+  }
+  await page.close();
+}
+
 async function checkLeak(page) {
   const mem = async () => page.evaluate(() => (performance.memory ? performance.memory.usedJSHeapSize : 0));
   const start = await mem();
@@ -589,6 +655,7 @@ async function main() {
     await checkResponsive(page, url);
     await checkThemes(page, url);
     await checkReducedMotion(page, url);
+    await checkLoadMode(browser, url);
     await checkFirstClickOnSlowCpu(browser, url);
     await checkDegradesWithoutThree(browser, url);
   } finally {

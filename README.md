@@ -16,18 +16,34 @@ $ python -m stresspredict.predict --composition "C=0.40,Mn=0.80,Cr=1.00,Mo=0.20,
   all elements within training range
 ```
 
-There is also an **interactive test bench** in [`web/`](web): enter a chemistry and a
-specimen's diameter and gauge length, and it runs the same fitted model in the
-browser, animating a 3D bar being pulled to fracture. Asking for the geometry is
-what removes the percentages from the answer -- stress in MPa is N/mm^2, so a
-diameter turns it into a force and a gauge length turns elongation into
-millimetres of travel:
+There is also an **interactive test bench** in [`web/`](web): enter a chemistry, a
+cross-section and a length, and it runs the same fitted model in the browser over
+a 3D bar you can orbit. Asking for the geometry is what removes the percentages
+from the answer -- stress in MPa is N/mm^2, so an area turns it into a force and a
+length turns elongation into millimetres of travel:
 
-| model output | with diameter and gauge length |
+| model output | with area and length |
 |---|---|
 | yield strength, MPa | **force at yield, kN** |
 | tensile strength, MPa | **force at break, kN** |
 | elongation, % | **stretch before break, mm** (and final length) |
+
+It has two modes. **Pull to failure** runs the whole test and reads the numbers off
+at the break. **Apply a load** ramps a dead load at a constant rate and answers the
+question an engineer actually asks -- hang this much off it, what happens? Under
+load control the bar is unstable the moment the applied force reaches the maximum
+it can carry, so that is the rupture criterion rather than the fracture strain,
+and the three outcomes are distinguished: springs back, keeps a permanent set, or
+parts.
+
+The fracture animation follows what a ductile steel does rather than a bar simply
+splitting: uniform thinning until maximum load, then localisation into a neck
+about 1.4 diameters wide while the rest of the gauge stops stretching, then
+separation as a **cup and cone** -- voids coalesce at the neck centre where
+triaxiality peaks, the flat fibrous crack runs outward, and the last ligament
+fails in shear near the surface. How far the neck contracts is not invented: it
+comes from a least-squares fit over the 414 heats in SteelBench that report
+reduction of area, `RA% = 0.47 x EL% + 31.8`.
 
 The page loads the 300 fitted trees as JSON and evaluates them in JavaScript, so
 it is the evaluated model rather than a mock-up. `tests/test_web_parity.py` runs
@@ -159,6 +175,33 @@ visible horizontal bands of identical predictions. That is the grade-prior
 behaviour of a composition-only model, drawn rather than described.
 
 
+
+### Where the model is entitled to an opinion
+
+Every element has a range the training data actually covers. Outside it the model
+is extrapolating, and a gradient-boosted tree extrapolates by repeating the
+nearest leaf it knows -- it will return a confident number that means nothing.
+The demo shows these ranges under each field and flags any value that leaves
+them; `predict()` returns the same information in `range_guard`.
+
+| Element | Min wt% | Max wt% | Heats reporting it |
+|---|---|---|---|
+| `C` | 0.01 | 2.05 | 1,359 |
+| `Mn` | 0.02 | 20 | 1,359 |
+| `Si` | 0.03 | 5 | 1,168 |
+| `Cr` | 0.01 | 29 | 1,178 |
+| `Ni` | 0.01 | 60.5 | 1,101 |
+| `Mo` | 0 | 6.5 | 963 |
+| `V` | 0 | 0.455 | 1,359 |
+| `Cu` | 0.01 | 4 | 781 |
+| `Al` | 0 | 3.75 | 577 |
+
+Two things these ranges do **not** capture, and both matter more than the numbers
+above. A chemistry can sit inside every single range and still belong to an alloy
+family the model has never seen -- on four of twelve held-out families it did
+worse than guessing the training median. And an element left blank is treated as
+"not deliberately added", i.e. zero, which is right for a residual and wrong if
+you simply did not measure it.
 
 ## What makes this different from the usual version of this project
 
