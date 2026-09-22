@@ -1,0 +1,114 @@
+{
+  "created_utc": "2026-09-22T00:15:32+00:00",
+  "stresspredict_version": "0.1.0",
+  "model": "hist_gbm",
+  "parameterisation": "ratio",
+  "feature_set": "comp",
+  "seed": 20260921,
+  "tuned": true,
+  "tuning_protocol": "HalvingRandomSearchCV, inner GroupKFold(3) grouped by grade, scoring=neg_mean_absolute_error",
+  "n_train_rows": 1359,
+  "n_train_grades": 562,
+  "n_train_families": 17,
+  "per_component": {
+    "tensile_strength": {
+      "n_train_rows": 1359,
+      "n_train_grades": 562,
+      "unit": "MPa",
+      "best_params": {
+        "regressor__regressor__model__min_samples_leaf": 5,
+        "regressor__regressor__model__max_leaf_nodes": 15,
+        "regressor__regressor__model__learning_rate": 0.1,
+        "regressor__regressor__model__l2_regularization": 1.0
+      }
+    },
+    "yield_ratio": {
+      "n_train_rows": 984,
+      "n_train_grades": 556,
+      "unit": "-",
+      "best_params": {
+        "regressor__regressor__model__min_samples_leaf": 10,
+        "regressor__regressor__model__max_leaf_nodes": 15,
+        "regressor__regressor__model__learning_rate": 0.06,
+        "regressor__regressor__model__l2_regularization": 0.1
+      }
+    },
+    "elongation": {
+      "n_train_rows": 661,
+      "n_train_grades": 443,
+      "unit": "%",
+      "best_params": {
+        "regressor__regressor__model__min_samples_leaf": 5,
+        "regressor__regressor__model__max_leaf_nodes": 15,
+        "regressor__regressor__model__learning_rate": 0.1,
+        "regressor__regressor__model__l2_regularization": 1.0
+      }
+    }
+  },
+  "training_data": {
+    "source_id": "steelbench_v1_open",
+    "raw_file": "data/raw/steelbench_core_open.csv",
+    "raw_sha256": "c95a119978703b50488381924f3a4932eee82f8305123c90d0b01a7ade0f3c2f",
+    "rows_after_cleaning": 1359
+  },
+  "element_ranges": {
+    "C": {
+      "min": 0.01,
+      "max": 2.05,
+      "n_reported": 1359
+    },
+    "Mn": {
+      "min": 0.02,
+      "max": 20.0,
+      "n_reported": 1359
+    },
+    "Si": {
+      "min": 0.03,
+      "max": 5.0,
+      "n_reported": 1168
+    },
+    "Cr": {
+      "min": 0.01,
+      "max": 29.0,
+      "n_reported": 1178
+    },
+    "Ni": {
+      "min": 0.01,
+      "max": 60.5,
+      "n_reported": 1101
+    },
+    "Mo": {
+      "min": 0.0,
+      "max": 6.5,
+      "n_reported": 963
+    },
+    "V": {
+      "min": 0.0,
+      "max": 0.455,
+      "n_reported": 1359
+    },
+    "Cu": {
+      "min": 0.01,
+      "max": 4.0,
+      "n_reported": 781
+    },
+    "Al": {
+      "min": 0.0,
+      "max": 3.75,
+      "n_reported": 577
+    }
+  },
+  "calibration_holdout": {
+    "reserved": true,
+    "n_rows": 275,
+    "grouped_by": "grade_group",
+    "purpose": "Phase 3 split-conformal calibration; unused in v1"
+  },
+  "environment": {
+    "python": "3.14.6",
+    "scikit_learn": "1.9.1",
+    "numpy": "2.5.3",
+    "pandas": "3.0.5"
+  },
+  "limitations": "Composition-only. Heat treatment dominates steel mechanical properties, so predictions are effectively a grade prior and cannot distinguish two tempers of the same chemistry. Accuracy is bounded below by the measured within-composition spread reported in data/processed/data_manifest.json. Strain at UTS, Hollomon n and the yield plateau are NOT predicted -- no open source found reports them. Point predictions carry no calibrated uncertainty in v1. Not for safety-critical use without physical testing."
+}

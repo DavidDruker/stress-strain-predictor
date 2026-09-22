@@ -13,8 +13,15 @@ data/raw/
 data/processed/
 # data/external/ IS committed (small, vendored with provenance) - see data/README.md
 
-# Model artifacts are reproducible from a seed; only reports/ is committed.
-artifacts/
+# The fitted model is reproducible from the committed code, the pinned
+# requirements, the seed and the dataset checksum, so the .joblib stays out.
+# Its sidecar IS committed: it documents what actually shipped -- the selected
+# hyper-parameters, training row/grade counts, library versions and the SHA-256
+# of the exact CSV the model descended from. That record is not regenerable
+# after the fact, and a model whose provenance lives only on one laptop is not
+# reproducible in any useful sense.
+artifacts/*
+!artifacts/*.json
 
 # Per-run console logs from parallel evaluation invocations.
 reports/.log_*
