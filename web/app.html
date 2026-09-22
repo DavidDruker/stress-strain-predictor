@@ -1,0 +1,846 @@
+<title>Tensile Test Bench</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+
+<style>
+  :root {
+    --ground: #eceef1;
+    --surface: #ffffff;
+    --surface-2: #f5f6f8;
+    --ink: #14181b;
+    --ink-2: #3c464e;
+    --muted: #68727a;
+    --line: #d3d8dd;
+    --line-2: #e3e7ea;
+    --accent: #b8491a;
+    --accent-soft: #f3e2d8;
+    --steel: #3d5a73;
+    --steel-soft: #dfe6ed;
+    --good: #2c6a4c;
+    --warn: #8f5c10;
+    --crit: #a02a2a;
+    --shadow: 0 1px 2px rgba(20, 30, 40, .07), 0 6px 20px rgba(20, 30, 40, .05);
+
+    --f-display: "Barlow Condensed", "Arial Narrow", system-ui, sans-serif;
+    --f-body: "Barlow", system-ui, -apple-system, sans-serif;
+    --f-mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ground: #0d1013;
+      --surface: #161a1e;
+      --surface-2: #1d2226;
+      --ink: #e7ebee;
+      --ink-2: #b9c2c9;
+      --muted: #8a949c;
+      --line: #2a3238;
+      --line-2: #222a30;
+      --accent: #ff8c42;
+      --accent-soft: #35211a;
+      --steel: #8bb0d2;
+      --steel-soft: #1c2831;
+      --good: #63b98c;
+      --warn: #d9a33f;
+      --crit: #e4736b;
+      --shadow: 0 1px 2px rgba(0, 0, 0, .4), 0 8px 24px rgba(0, 0, 0, .3);
+    }
+  }
+  :root[data-theme="dark"] {
+    --ground: #0d1013;
+    --surface: #161a1e;
+    --surface-2: #1d2226;
+    --ink: #e7ebee;
+    --ink-2: #b9c2c9;
+    --muted: #8a949c;
+    --line: #2a3238;
+    --line-2: #222a30;
+    --accent: #ff8c42;
+    --accent-soft: #35211a;
+    --steel: #8bb0d2;
+    --steel-soft: #1c2831;
+    --good: #63b98c;
+    --warn: #d9a33f;
+    --crit: #e4736b;
+    --shadow: 0 1px 2px rgba(0, 0, 0, .4), 0 8px 24px rgba(0, 0, 0, .3);
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    background: var(--ground);
+    color: var(--ink);
+    font-family: var(--f-body);
+    font-size: 15px;
+    line-height: 1.5;
+    margin: 0;
+  }
+  .wrap { max-width: 1240px; margin: 0 auto; padding: 0 16px; padding-block: 28px 56px; }
+
+  h1, h2, h3 { font-family: var(--f-display); margin: 0; text-wrap: balance; letter-spacing: .01em; }
+  h1 { font-size: clamp(30px, 5vw, 44px); font-weight: 700; line-height: 1.02; text-transform: uppercase; }
+  h2 { font-size: 20px; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; }
+  h3 { font-size: 15px; font-weight: 600; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); }
+  p { margin: 0; }
+
+  .eyebrow {
+    font-family: var(--f-mono); font-size: 11px; font-weight: 500;
+    letter-spacing: .16em; text-transform: uppercase; color: var(--accent);
+  }
+  .lede { color: var(--ink-2); max-width: 66ch; margin-top: 10px; }
+
+  header { border-bottom: 2px solid var(--ink); padding-bottom: 18px; margin-bottom: 24px; }
+  .plate {
+    display: flex; flex-wrap: wrap; gap: 8px 18px; margin-top: 14px;
+    font-family: var(--f-mono); font-size: 11px; color: var(--muted);
+  }
+  .plate span { white-space: nowrap; }
+  .plate b { color: var(--ink-2); font-weight: 500; }
+
+  .console { display: grid; gap: 18px; grid-template-areas: "stage" "controls"; }
+  @media (min-width: 940px) {
+    .console { grid-template-columns: 330px minmax(0, 1fr); grid-template-areas: "controls stage"; align-items: start; }
+  }
+  .stage { grid-area: stage; min-width: 0; }
+  .controls { grid-area: controls; min-width: 0; }
+
+  .panel { background: var(--surface); border: 1px solid var(--line); border-radius: 4px; box-shadow: var(--shadow); }
+  .panel + .panel { margin-top: 14px; }
+  .panel-head {
+    display: flex; align-items: baseline; justify-content: space-between; gap: 12px;
+    padding: 11px 14px; border-bottom: 1px solid var(--line-2);
+  }
+  .panel-body { padding: 14px; }
+
+  /* ---- specimen stage ---- */
+  #viewport { display: block; width: 100%; height: clamp(230px, 34vw, 330px); }
+  .viewport-shell { position: relative; background: var(--surface-2); border-bottom: 1px solid var(--line-2); }
+  .grip-label {
+    position: absolute; bottom: 8px; font-family: var(--f-mono); font-size: 10px;
+    letter-spacing: .12em; text-transform: uppercase; color: var(--muted);
+  }
+  .grip-label.l { left: 12px; }
+  .grip-label.r { right: 12px; }
+
+  .live {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px;
+    background: var(--line-2); border-bottom: 1px solid var(--line-2);
+  }
+  .live div { background: var(--surface); padding: 10px 14px; }
+  .live .k { font-family: var(--f-mono); font-size: 10px; letter-spacing: .13em; text-transform: uppercase; color: var(--muted); }
+  .live .v { font-family: var(--f-mono); font-size: clamp(19px, 3.2vw, 25px); font-weight: 600; font-variant-numeric: tabular-nums; line-height: 1.25; }
+  .live .v u { text-decoration: none; font-size: .58em; font-weight: 500; color: var(--muted); margin-left: 3px; }
+  .live .phase { color: var(--accent); }
+
+  #curve { display: block; width: 100%; height: 230px; }
+
+  /* ---- controls ---- */
+  .presets { display: flex; flex-wrap: wrap; gap: 6px; }
+  .chip {
+    font-family: var(--f-display); font-size: 14px; font-weight: 600; letter-spacing: .03em;
+    padding: 5px 10px; border: 1px solid var(--line); background: var(--surface-2);
+    color: var(--ink-2); border-radius: 3px; cursor: pointer;
+  }
+  .chip:hover { border-color: var(--steel); color: var(--ink); }
+  .chip[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+  .grid-el { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+  .grid-geo { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-top: 4px; }
+  .field label {
+    display: block; font-family: var(--f-mono); font-size: 10px; letter-spacing: .1em;
+    text-transform: uppercase; color: var(--muted); margin-bottom: 3px;
+  }
+  .field input {
+    width: 100%; font-family: var(--f-mono); font-size: 14px; font-variant-numeric: tabular-nums;
+    padding: 7px 8px; border: 1px solid var(--line); border-radius: 3px;
+    background: var(--surface-2); color: var(--ink);
+  }
+  .field input:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; border-color: var(--accent); }
+  .field.flag input { border-color: var(--warn); }
+
+  .run {
+    width: 100%; margin-top: 14px; padding: 12px; cursor: pointer;
+    font-family: var(--f-display); font-size: 19px; font-weight: 700;
+    letter-spacing: .1em; text-transform: uppercase;
+    background: var(--accent); color: #fff; border: none; border-radius: 3px;
+  }
+  .run:hover { filter: brightness(1.08); }
+  .run:disabled { opacity: .55; cursor: progress; }
+  .run:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+
+  .guard { margin-top: 12px; display: grid; gap: 6px; }
+  .guard:empty { display: none; }
+  .flagline {
+    display: flex; gap: 8px; align-items: flex-start;
+    font-size: 13px; line-height: 1.35; color: var(--ink-2);
+    border-left: 3px solid var(--warn); padding: 6px 0 6px 9px; background: var(--surface-2);
+  }
+  .flagline b { font-family: var(--f-mono); font-size: 12px; color: var(--warn); }
+
+  /* ---- results ---- */
+  .results { margin-top: 18px; }
+  .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(168px, 1fr)); gap: 1px; background: var(--line-2); }
+  .tile { background: var(--surface); padding: 15px 16px; }
+  .tile .k { font-family: var(--f-mono); font-size: 10px; letter-spacing: .13em; text-transform: uppercase; color: var(--muted); }
+  .tile .v {
+    font-family: var(--f-mono); font-size: clamp(25px, 3.6vw, 33px); font-weight: 600;
+    font-variant-numeric: tabular-nums; line-height: 1.18; margin-top: 4px;
+  }
+  .tile .v u { text-decoration: none; font-size: .46em; font-weight: 500; color: var(--muted); margin-left: 4px; }
+  .tile.hero .v { color: var(--accent); }
+
+  .secondary { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 9px 20px; padding: 14px; }
+  .srow { display: flex; justify-content: space-between; gap: 12px; align-items: baseline; border-bottom: 1px dotted var(--line); padding-bottom: 5px; }
+  .srow span { font-size: 13px; color: var(--muted); }
+  .srow b { font-family: var(--f-mono); font-size: 14px; font-weight: 500; font-variant-numeric: tabular-nums; color: var(--ink); white-space: nowrap; }
+
+  /* ---- notes ---- */
+  .notes { margin-top: 18px; }
+  .notes ul { margin: 0; padding-left: 0; list-style: none; display: grid; gap: 11px; }
+  .notes li { display: grid; grid-template-columns: 13px 1fr; gap: 10px; font-size: 14px; color: var(--ink-2); line-height: 1.5; }
+  .notes li::before { content: ""; width: 3px; height: 1.05em; background: var(--steel); margin-top: .2em; border-radius: 1px; }
+  .notes li.hard::before { background: var(--crit); }
+  .notes b { color: var(--ink); font-weight: 600; }
+  .notes code { font-family: var(--f-mono); font-size: .88em; background: var(--surface-2); padding: 1px 4px; border-radius: 2px; }
+
+  footer { margin-top: 26px; padding-top: 14px; border-top: 1px solid var(--line); font-size: 13px; color: var(--muted); }
+  footer a { color: var(--steel); }
+
+  @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="eyebrow">Composition &rarr; tensile landmarks</div>
+    <h1>Tensile Test Bench</h1>
+    <p class="lede">
+      Type a steel's chemistry and the specimen's dimensions, and the model predicts what
+      a tensile test would measure &mdash; reported as forces and millimetres, not percentages.
+      The gradient-boosted model runs here in the page; it is the same fitted model the
+      evaluation measured.
+    </p>
+    <div class="plate">
+      <span><b>Model</b> HistGradientBoosting &times;3</span>
+      <span><b>Trained on</b> 1,359 heats / 562 grades</span>
+      <span><b>Inputs</b> chemistry only</span>
+      <span><b>Protocol</b> grade-grouped CV</span>
+      <span><b>Data</b> SteelBench v1.0 &middot; CC BY 4.0</span>
+    </div>
+  </header>
+
+  <main class="console">
+    <section class="stage">
+      <div class="panel">
+        <div class="panel-head">
+          <h2>Specimen</h2>
+          <span class="eyebrow" id="stage-scale">round bar</span>
+        </div>
+        <div class="viewport-shell">
+          <canvas id="viewport"></canvas>
+          <span class="grip-label l">fixed grip</span>
+          <span class="grip-label r">moving crosshead</span>
+        </div>
+        <div class="live">
+          <div><div class="k">Load</div><div class="v" id="live-force">0.0<u>kN</u></div></div>
+          <div><div class="k">Extension</div><div class="v" id="live-ext">0.00<u>mm</u></div></div>
+          <div><div class="k">Stage</div><div class="v phase" id="live-phase">At rest</div></div>
+        </div>
+        <canvas id="curve"></canvas>
+      </div>
+    </section>
+
+    <aside class="controls">
+      <div class="panel">
+        <div class="panel-head"><h2>Chemistry</h2><span class="eyebrow">wt %</span></div>
+        <div class="panel-body">
+          <div class="presets" id="presets"></div>
+          <div class="grid-el" id="elements" style="margin-top:12px"></div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head"><h2>Specimen size</h2><span class="eyebrow">mm</span></div>
+        <div class="panel-body">
+          <div class="grid-geo">
+            <div class="field">
+              <label for="dia">Diameter</label>
+              <input id="dia" type="number" min="0.5" max="200" step="0.5" value="10">
+            </div>
+            <div class="field">
+              <label for="gauge">Gauge length</label>
+              <input id="gauge" type="number" min="5" max="2000" step="5" value="50">
+            </div>
+          </div>
+          <button class="run" id="run" type="button">Run tensile test</button>
+          <div class="guard" id="guard"></div>
+        </div>
+      </div>
+    </aside>
+  </main>
+
+  <section class="results">
+    <div class="panel">
+      <div class="panel-head">
+        <h2>Predicted result</h2>
+        <span class="eyebrow" id="result-for">&nbsp;</span>
+      </div>
+      <div class="tiles">
+        <div class="tile hero"><div class="k">Force at yield</div><div class="v" id="r-yf">&mdash;</div></div>
+        <div class="tile hero"><div class="k">Force at break</div><div class="v" id="r-bf">&mdash;</div></div>
+        <div class="tile"><div class="k">Stretch before break</div><div class="v" id="r-ext">&mdash;</div></div>
+        <div class="tile"><div class="k">Length at break</div><div class="v" id="r-len">&mdash;</div></div>
+      </div>
+      <div class="secondary">
+        <div class="srow"><span>Yield strength</span><b id="s-ys">&mdash;</b></div>
+        <div class="srow"><span>Tensile strength</span><b id="s-uts">&mdash;</b></div>
+        <div class="srow"><span>Stretch at yield</span><b id="s-ey">&mdash;</b></div>
+        <div class="srow"><span>Cross-section</span><b id="s-area">&mdash;</b></div>
+        <div class="srow"><span>Mass per metre</span><b id="s-mass">&mdash;</b></div>
+        <div class="srow"><span>Elastic stiffness</span><b id="s-k">&mdash;</b></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="notes">
+    <div class="panel">
+      <div class="panel-head"><h2>What this can and cannot tell you</h2></div>
+      <div class="panel-body">
+        <ul>
+          <li class="hard"><span><b>It cannot see heat treatment.</b> Two bars of identical
+            chemistry, one quenched and tempered at 200&nbsp;&deg;C and one at 650&nbsp;&deg;C, differ by
+            500&nbsp;MPa or more in yield strength &mdash; and reach this model as the same input. Read
+            the numbers as <b>what steels of roughly this chemistry usually do</b>, not as what
+            your heat will do.</span></li>
+          <li class="hard"><span><b>It is at its measured ceiling, not merely approximate.</b>
+            Bars sharing an exact chemistry in the training data still scatter by
+            107&ndash;191&nbsp;MPa in yield strength. That scatter is processing history, so it is a
+            floor no chemistry-only model can cross. The model already sits inside it.</span></li>
+          <li><span><b>Unfamiliar alloy families are the real failure mode.</b> On four of
+            twelve held-out families the model did worse than simply guessing the training
+            median. The range check beside the inputs catches out-of-range <em>elements</em>, but
+            a chemistry can sit inside every range and still belong to a family the model has
+            never seen.</span></li>
+          <li><span><b>The stretch figure assumes a proportional specimen.</b> Elongation is only
+            comparable within a gauge-length standard &mdash; A5 and A50&nbsp;mm give different
+            numbers for the same steel &mdash; and the training data does not record which standard
+            each row used. Millimetres of stretch inherit that uncertainty; forces do not.</span></li>
+          <li><span><b>The curve between the points is drawn, not predicted.</b> The model
+            outputs three landmarks. No open dataset found reports strain at maximum load or a
+            hardening exponent, so the path between them is a Hollomon power law closed with the
+            Consid&egrave;re condition and pinned to the predicted points. The <em>shape</em> is a
+            reconstruction; only the marked points are predictions.</span></li>
+          <li><span><b>Modelled as a solid round bar.</b> A stranded wire rope of the same
+            nominal area carries roughly 10&ndash;15% less, because the helical lay means the wires
+            do not all pull along the axis. Treat these forces as an upper bound for rope.</span></li>
+          <li class="hard"><span><b>Not for design allowables.</b> These are statistical
+            predictions from 1,359 heats, 55% of which are specification minima rather than
+            measurements. They are not a substitute for a tensile test.</span></li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    Model, evaluation and provenance:
+    <a href="https://github.com/DavidDruker/stress-strain-predictor">github.com/DavidDruker/stress-strain-predictor</a>.
+    Training data: SteelBench v1.0, DOI 10.5281/zenodo.18530558, CC BY 4.0.
+  </footer>
+</div>
+
+<script src="model.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+(function () {
+  "use strict";
+
+  var MODEL = window.SP_MODEL;
+  var E_MODULUS = 205000; // MPa; essentially constant for steel, so never modelled
+
+  /* ------------------------------------------------------------------ *
+   * Inference: evaluates the exported trees. Mirrors stresspredict's
+   * features.py and targets.py; a Node parity test asserts agreement with
+   * Python to 1e-9 on every training row.
+   * ------------------------------------------------------------------ */
+  function buildFeatures(composition) {
+    var els = MODEL.elements, i;
+    var raw = [], filled = [];
+    for (i = 0; i < els.length; i++) {
+      var v = composition[els[i]];
+      var isNum = (v !== undefined && v !== null && !isNaN(v));
+      raw.push(isNum ? Number(v) : NaN);
+      filled.push(isNum ? Number(v) : 0);
+    }
+    function g(name) { return filled[els.indexOf(name)]; }
+    var C = g("C"), Mn = g("Mn"), Si = g("Si"), Cr = g("Cr");
+    var Ni = g("Ni"), Mo = g("Mo"), V = g("V"), Cu = g("Cu");
+
+    // Left-to-right, matching Python exactly: a last-bit difference here
+    // flips a tree split and can move a prediction by several percent.
+    var total = 0;
+    for (i = 0; i < filled.length; i++) total = total + filled[i];
+
+    var vals = {
+      ce_iiw: C + Mn / 6 + (Cr + Mo + V) / 5 + (Ni + Cu) / 15,
+      pcm: C + Si / 30 + Mn / 20 + Cu / 20 + Cr / 20 + Ni / 60 + Mo / 15 + V / 10,
+      total_alloy: total,
+      fe_balance: 100 - total,
+      ss_proxy: 83 * Si + 32 * Mn + 33 * Ni + 11 * Cr + 11 * Mo + 39 * Cu,
+      carbide_former: Cr + Mo + V,
+      cr_eq_schaeffler: Cr + Mo + 1.5 * Si,
+      ni_eq_schaeffler: Ni + 30 * C + 0.5 * Mn
+    };
+    for (i = 0; i < els.length; i++) vals[els[i]] = filled[i];
+    for (i = 0; i < MODEL.indicator_elements.length; i++) {
+      var el = MODEL.indicator_elements[i];
+      vals["missing__" + el] = isNaN(raw[els.indexOf(el)]) ? 1 : 0;
+    }
+    return MODEL.feature_names.map(function (n) { return vals[n]; });
+  }
+
+  function treeValue(tree, x) {
+    var node = 0;
+    for (var step = 0; step < 4096; step++) {
+      if (tree.lf[node]) return tree.v[node];
+      var value = x[tree.f[node]];
+      if (isNaN(value)) node = tree.m[node] ? tree.l[node] : tree.r[node];
+      else node = value <= tree.th[node] ? tree.l[node] : tree.r[node];
+    }
+    throw new Error("tree traversal did not reach a leaf");
+  }
+
+  function component(name, x) {
+    var c = MODEL.components[name], z = c.baseline;
+    for (var i = 0; i < c.trees.length; i++) z += treeValue(c.trees[i], x);
+    return c.link === "log" ? Math.exp(z) : 1 / (1 + Math.exp(-z));
+  }
+
+  function predict(composition) {
+    var x = buildFeatures(composition);
+    var uts = component("tensile_strength", x);
+    var ratio = component("yield_ratio", x);
+    var elongation = component("elongation", x);
+    var ys = uts * ratio;
+    if (!(ys < uts)) ys = uts * (1 - Number.EPSILON); // strict by construction
+    return { ys: ys, uts: uts, elongation: elongation };
+  }
+
+  function rangeGuard(composition) {
+    var flags = [];
+    Object.keys(composition).forEach(function (el) {
+      var value = composition[el];
+      if (value === undefined || value === null || isNaN(value)) return;
+      var r = MODEL.element_ranges[el];
+      if (!r) return;
+      if (value < r.min || value > r.max) flags.push({ el: el, value: value, min: r.min, max: r.max });
+    });
+    return flags;
+  }
+
+  /* ------------------------------------------------------------------ *
+   * Geometry turns predictions into forces and millimetres. This is the
+   * arithmetic that removes every percentage from the readout.
+   * ------------------------------------------------------------------ */
+  function engineering(p, dia, gauge) {
+    var area = Math.PI * Math.pow(dia / 2, 2);       // mm^2
+    var ext = (p.elongation / 100) * gauge;           // mm
+    return {
+      area: area,
+      yieldForce: p.ys * area / 1000,                 // kN  (MPa = N/mm^2)
+      breakForce: p.uts * area / 1000,
+      extYield: (p.ys / E_MODULUS) * gauge,
+      extBreak: ext,
+      finalLength: gauge + ext,
+      massPerM: area * 1000 * 7.85 / 1e6,             // kg/m
+      stiffness: E_MODULUS * area / gauge / 1000      // kN/mm
+    };
+  }
+
+  /* Curve through the landmarks. Shape is reconstructed, not predicted. */
+  function curvePoints(p, eng, gauge, n) {
+    n = n || 240;
+    var epsTotal = p.elongation / 100;
+    var epsYield = p.ys / E_MODULUS;
+    var hard = Math.max(0.02, Math.min(0.30, Math.log(p.uts / p.ys) / 2 + 0.05));
+    var epsUts = Math.min(Math.max(hard, epsYield * 2), epsTotal * 0.75);
+    var K = p.uts / Math.pow(Math.max(epsUts, 1e-6), hard);
+
+    var pts = [];
+    for (var i = 0; i < n; i++) {
+      var e = (i / (n - 1)) * epsTotal, s;
+      if (e <= epsYield) s = E_MODULUS * e;
+      else if (e <= epsUts) s = Math.min(K * Math.pow(e, hard), p.uts);
+      else {
+        var t = (e - epsUts) / Math.max(epsTotal - epsUts, 1e-9);
+        s = p.uts * (1 - 0.35 * t * t);
+      }
+      pts.push({ x: e * gauge, y: s * eng.area / 1000, strain: e });
+    }
+    return { pts: pts, epsYield: epsYield, epsUts: epsUts, epsTotal: epsTotal };
+  }
+
+  /* ------------------------------------------------------------------ *
+   * State
+   * ------------------------------------------------------------------ */
+  var PRESETS = [
+    { name: "AISI 1045", c: { C: 0.45, Mn: 0.75, Si: 0.25 } },
+    { name: "AISI 4140", c: { C: 0.40, Mn: 0.88, Si: 0.23, Cr: 0.95, Mo: 0.20 } },
+    { name: "S355", c: { C: 0.18, Mn: 1.50, Si: 0.40, Cu: 0.30 } },
+    { name: "304", c: { C: 0.06, Mn: 1.50, Si: 0.50, Cr: 18.5, Ni: 9.0 } },
+    { name: "316L", c: { C: 0.02, Mn: 1.50, Si: 0.50, Cr: 17.0, Ni: 11.0, Mo: 2.20 } },
+    { name: "Duplex 2205", c: { C: 0.02, Mn: 1.50, Si: 0.45, Cr: 22.0, Ni: 5.5, Mo: 3.10 } }
+  ];
+
+  var state = { composition: {}, dia: 10, gauge: 50, prediction: null, eng: null, curve: null, preset: "AISI 4140" };
+  var el = {};
+  ["presets", "elements", "dia", "gauge", "run", "guard", "curve", "viewport",
+   "live-force", "live-ext", "live-phase", "result-for", "stage-scale",
+   "r-yf", "r-bf", "r-ext", "r-len",
+   "s-ys", "s-uts", "s-ey", "s-area", "s-mass", "s-k"].forEach(function (id) {
+    el[id] = document.getElementById(id);
+  });
+
+  var fmt = function (v, d) { return v.toLocaleString(undefined, { minimumFractionDigits: d, maximumFractionDigits: d }); };
+  var unit = function (v, d, u) { return fmt(v, d) + '<u>' + u + '</u>'; };
+
+  /* ---- build inputs ---- */
+  MODEL.elements.forEach(function (name) {
+    var wrap = document.createElement("div");
+    wrap.className = "field";
+    wrap.innerHTML = '<label for="el-' + name + '">' + name + '</label>' +
+      '<input id="el-' + name + '" type="number" min="0" step="0.01" inputmode="decimal">';
+    el.elements.appendChild(wrap);
+    el["el-" + name] = wrap.querySelector("input");
+    el["wrap-" + name] = wrap;
+  });
+
+  PRESETS.forEach(function (p) {
+    var b = document.createElement("button");
+    b.type = "button"; b.className = "chip"; b.textContent = p.name;
+    b.setAttribute("aria-pressed", "false");
+    b.addEventListener("click", function () { applyPreset(p); });
+    el.presets.appendChild(b);
+    p.node = b;
+  });
+
+  function applyPreset(p) {
+    state.preset = p.name;
+    MODEL.elements.forEach(function (name) {
+      el["el-" + name].value = (p.c[name] === undefined) ? "" : p.c[name];
+    });
+    readInputs(); recompute(); resetSpecimen();
+  }
+
+  function markPreset() {
+    PRESETS.forEach(function (p) { p.node.setAttribute("aria-pressed", String(p.name === state.preset)); });
+  }
+
+  function readInputs() {
+    var c = {};
+    MODEL.elements.forEach(function (name) {
+      var raw = el["el-" + name].value.trim();
+      if (raw !== "") { var v = parseFloat(raw); if (!isNaN(v)) c[name] = v; }
+    });
+    state.composition = c;
+    state.dia = Math.max(0.5, parseFloat(el.dia.value) || 10);
+    state.gauge = Math.max(5, parseFloat(el.gauge.value) || 50);
+  }
+
+  /* ---- results ---- */
+  function recompute() {
+    var p = predict(state.composition);
+    var eng = engineering(p, state.dia, state.gauge);
+    state.prediction = p; state.eng = eng;
+    state.curve = curvePoints(p, eng, state.gauge);
+
+    el["r-yf"].innerHTML = unit(eng.yieldForce, eng.yieldForce < 100 ? 1 : 0, "kN");
+    el["r-bf"].innerHTML = unit(eng.breakForce, eng.breakForce < 100 ? 1 : 0, "kN");
+    el["r-ext"].innerHTML = unit(eng.extBreak, 1, "mm");
+    el["r-len"].innerHTML = unit(eng.finalLength, 1, "mm");
+
+    el["s-ys"].textContent = fmt(p.ys, 0) + " MPa";
+    el["s-uts"].textContent = fmt(p.uts, 0) + " MPa";
+    el["s-ey"].textContent = fmt(eng.extYield, 2) + " mm";
+    el["s-area"].textContent = fmt(eng.area, 1) + " mm²";
+    el["s-mass"].textContent = fmt(eng.massPerM, 2) + " kg/m";
+    el["s-k"].textContent = fmt(eng.stiffness, 1) + " kN/mm";
+
+    el["result-for"].textContent = "ø" + fmt(state.dia, 1) + " mm × " + fmt(state.gauge, 0) + " mm";
+    el["stage-scale"].textContent = "round bar ø" + fmt(state.dia, 1) + " mm";
+
+    var flags = rangeGuard(state.composition);
+    MODEL.elements.forEach(function (n) { el["wrap-" + n].classList.remove("flag"); });
+    el.guard.innerHTML = "";
+    flags.forEach(function (f) {
+      el["wrap-" + f.el].classList.add("flag");
+      var d = document.createElement("div");
+      d.className = "flagline";
+      d.innerHTML = "<b>" + f.el + "</b><span>" + fmt(f.value, 2) +
+        " wt% is outside the range the model was trained on (" +
+        fmt(f.min, 2) + "–" + fmt(f.max, 2) + "). Treat this prediction as an extrapolation.</span>";
+      el.guard.appendChild(d);
+    });
+
+    markPreset();
+    drawCurve(1);
+  }
+
+  /* ---- stress-strain curve, plotted in force and millimetres ---- */
+  var cctx = el.curve.getContext("2d");
+  function css(name) { return getComputedStyle(document.documentElement).getPropertyValue(name).trim(); }
+
+  function drawCurve(progress) {
+    var dpr = Math.min(window.devicePixelRatio || 1, 2);
+    var w = el.curve.clientWidth, h = el.curve.clientHeight;
+    el.curve.width = Math.round(w * dpr); el.curve.height = Math.round(h * dpr);
+    cctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    cctx.clearRect(0, 0, w, h);
+    if (!state.curve) return;
+
+    var padL = 56, padR = 16, padT = 30, padB = 34;
+    var pts = state.curve.pts;
+    var maxX = pts[pts.length - 1].x * 1.04;
+    var maxY = state.eng.breakForce * 1.14;
+    var X = function (v) { return padL + (v / maxX) * (w - padL - padR); };
+    var Y = function (v) { return h - padB - (v / maxY) * (h - padT - padB); };
+
+    var inkC = css("--ink"), mutedC = css("--muted"), lineC = css("--line-2"), accentC = css("--accent"), steelC = css("--steel");
+
+    // grid + ticks
+    cctx.strokeStyle = lineC; cctx.lineWidth = 1;
+    cctx.font = '500 10px "IBM Plex Mono", monospace';
+    cctx.fillStyle = mutedC;
+    var i, yTicks = 4, xTicks = 5;
+    for (i = 0; i <= yTicks; i++) {
+      var yv = maxY * i / yTicks, py = Y(yv);
+      cctx.beginPath(); cctx.moveTo(padL, py); cctx.lineTo(w - padR, py); cctx.stroke();
+      cctx.textAlign = "right"; cctx.textBaseline = "middle";
+      cctx.fillText(fmt(yv, yv < 10 ? 1 : 0), padL - 7, py);
+    }
+    for (i = 0; i <= xTicks; i++) {
+      var xv = maxX * i / xTicks, px = X(xv);
+      cctx.textAlign = "center"; cctx.textBaseline = "top";
+      cctx.fillText(fmt(xv, xv < 10 ? 1 : 0), px, h - padB + 7);
+    }
+    cctx.textAlign = "left"; cctx.textBaseline = "top";
+    cctx.fillText("LOAD  kN", padL - 48, 8);
+    cctx.textAlign = "right";
+    cctx.fillText("EXTENSION  mm", w - padR, h - 13);
+
+    // axes
+    cctx.strokeStyle = mutedC; cctx.beginPath();
+    cctx.moveTo(padL, padT); cctx.lineTo(padL, h - padB); cctx.lineTo(w - padR, h - padB); cctx.stroke();
+
+    // traced curve
+    var last = Math.max(1, Math.floor(pts.length * progress));
+    cctx.strokeStyle = accentC; cctx.lineWidth = 2.2; cctx.lineJoin = "round";
+    cctx.beginPath();
+    for (i = 0; i < last; i++) {
+      var pt = pts[i];
+      if (i === 0) cctx.moveTo(X(pt.x), Y(pt.y)); else cctx.lineTo(X(pt.x), Y(pt.y));
+    }
+    cctx.stroke();
+
+    // landmark markers, only once the trace has reached them
+    function marker(strain, force, label, colour) {
+      if (pts[last - 1].strain < strain - 1e-9) return;
+      var px = X(strain * state.gauge), py = Y(force);
+      cctx.fillStyle = colour;
+      cctx.beginPath(); cctx.arc(px, py, 4, 0, Math.PI * 2); cctx.fill();
+      cctx.font = '600 10px "IBM Plex Mono", monospace';
+      cctx.textAlign = "left"; cctx.textBaseline = "bottom";
+      var tx = Math.min(px + 7, w - padR - 78);
+      cctx.fillText(label, tx, py - 6);
+    }
+    marker(state.curve.epsYield, state.eng.yieldForce, "YIELD " + fmt(state.eng.yieldForce, 0) + " kN", steelC);
+    marker(state.curve.epsUts, state.eng.breakForce, "MAX " + fmt(state.eng.breakForce, 0) + " kN", accentC);
+    if (progress >= 0.999) {
+      var pe = pts[pts.length - 1];
+      cctx.fillStyle = inkC;
+      cctx.beginPath(); cctx.arc(X(pe.x), Y(pe.y), 3.5, 0, Math.PI * 2); cctx.fill();
+      cctx.font = '600 10px "IBM Plex Mono", monospace';
+      cctx.textAlign = "right"; cctx.textBaseline = "top";
+      cctx.fillText("FRACTURE", X(pe.x) - 6, Y(pe.y) + 6);
+    }
+  }
+
+  /* ------------------------------------------------------------------ *
+   * 3D specimen
+   * ------------------------------------------------------------------ */
+  var renderer, scene, camera, barA, barB, gripL, gripR, matSteel;
+  var GAUGE_HALF = 1.15, END_LEN = 0.62;
+
+  function initThree() {
+    renderer = new THREE.WebGLRenderer({ canvas: el.viewport, antialias: true, alpha: true });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    scene = new THREE.Scene();
+    camera = new THREE.PerspectiveCamera(32, 2, 0.1, 100);
+    camera.position.set(0.15, 1.35, 5.4);
+    camera.lookAt(0, 0, 0);
+
+    scene.add(new THREE.HemisphereLight(0xdfe8f2, 0x2b3238, 0.85));
+    var key = new THREE.DirectionalLight(0xffffff, 0.95); key.position.set(3, 5, 4); scene.add(key);
+    var rim = new THREE.DirectionalLight(0xffc9a0, 0.5); rim.position.set(-4, 1.5, -3); scene.add(rim);
+
+    matSteel = new THREE.MeshStandardMaterial({ color: 0x9aa6b0, metalness: 0.85, roughness: 0.34 });
+    var matGrip = new THREE.MeshStandardMaterial({ color: 0x4a545c, metalness: 0.6, roughness: 0.62 });
+
+    barA = new THREE.Mesh(new THREE.BufferGeometry(), matSteel);
+    barB = new THREE.Mesh(new THREE.BufferGeometry(), matSteel);
+    barA.rotation.z = -Math.PI / 2; barB.rotation.z = -Math.PI / 2;
+    scene.add(barA); scene.add(barB);
+
+    var jaw = new THREE.BoxGeometry(0.34, 0.86, 0.86);
+    gripL = new THREE.Mesh(jaw, matGrip); gripR = new THREE.Mesh(jaw, matGrip);
+    scene.add(gripL); scene.add(gripR);
+
+    resizeThree();
+    window.addEventListener("resize", function () { resizeThree(); drawCurve(lastProgress); });
+  }
+
+  function resizeThree() {
+    var w = el.viewport.clientWidth, h = el.viewport.clientHeight;
+    if (!w || !h) return;
+    renderer.setSize(w, h, false);
+    camera.aspect = w / h;
+    camera.updateProjectionMatrix();
+    renderFrame();
+  }
+
+  /* Radius profile of one half of the specimen, from the centre outwards.
+     Volume is conserved in the gauge length, and necking is a local
+     gaussian reduction that only develops past maximum load. */
+  function halfProfile(sign, strain, neck, gaugeHalf, r0) {
+    var rUniform = r0 / Math.sqrt(1 + Math.max(strain, 0));
+    var rGrip = r0 * 1.85;
+    var pts = [], N = 46, i;
+    for (i = 0; i <= N; i++) {
+      var t = i / N;
+      var y, r;
+      if (t <= 0.72) {                       // gauge section
+        y = t / 0.72 * gaugeHalf;
+        var nk = neck > 0 ? (1 - neck * Math.exp(-Math.pow(y / (gaugeHalf * 0.30), 2))) : 1;
+        r = rUniform * nk;
+      } else if (t <= 0.86) {                // shoulder fillet
+        var u = (t - 0.72) / 0.14;
+        y = gaugeHalf + u * END_LEN * 0.45;
+        r = rUniform + (rGrip - rUniform) * (u * u * (3 - 2 * u));
+      } else {                               // grip section
+        var v = (t - 0.86) / 0.14;
+        y = gaugeHalf + END_LEN * 0.45 + v * END_LEN * 0.55;
+        r = rGrip;
+      }
+      pts.push(new THREE.Vector2(Math.max(r, 0.004), sign * y));
+    }
+    if (sign < 0) pts.reverse();
+    return pts;
+  }
+
+  function buildSpecimen(strain, neck, split) {
+    var r0 = Math.min(0.62, Math.max(0.055, (state.dia / state.gauge) * GAUGE_HALF));
+    var gaugeHalf = GAUGE_HALF * (1 + strain);
+
+    var a = halfProfile(1, strain, neck, gaugeHalf, r0);
+    var b = halfProfile(-1, strain, neck, gaugeHalf, r0);
+    if (barA.geometry) barA.geometry.dispose();
+    if (barB.geometry) barB.geometry.dispose();
+    barA.geometry = new THREE.LatheGeometry(a, 44);
+    barB.geometry = new THREE.LatheGeometry(b, 44);
+
+    barA.position.x = split; barB.position.x = -split;
+    var end = gaugeHalf + END_LEN + split;
+    gripR.position.x = end + 0.17; gripL.position.x = -end - 0.17;
+  }
+
+  function renderFrame() { if (renderer) renderer.render(scene, camera); }
+
+  function resetSpecimen() {
+    buildSpecimen(0, 0, 0);
+    el["live-force"].innerHTML = unit(0, 1, "kN");
+    el["live-ext"].innerHTML = unit(0, 2, "mm");
+    el["live-phase"].textContent = "At rest";
+    renderFrame();
+  }
+
+  /* ---- the pull ---- */
+  var lastProgress = 1, animating = false;
+
+  function runTest() {
+    if (animating || !state.curve) return;
+    var reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (reduce) {
+      buildSpecimen(state.curve.epsTotal * 0.55, 0.62, 0.22);
+      el["live-force"].innerHTML = unit(0, 1, "kN");
+      el["live-ext"].innerHTML = unit(state.eng.extBreak, 2, "mm");
+      el["live-phase"].textContent = "Fractured";
+      drawCurve(1); renderFrame();
+      return;
+    }
+
+    animating = true;
+    el.run.disabled = true;
+    var pts = state.curve.pts, total = 2600, t0 = performance.now();
+
+    function frame(now) {
+      var k = Math.min(1, (now - t0) / total);
+      var idx = Math.min(pts.length - 1, Math.floor(k * (pts.length - 1)));
+      var pt = pts[idx];
+      var strain = pt.strain;
+
+      // Screen strain is compressed: a 20% real stretch is visually slight,
+      // so the bar is exaggerated to keep the deformation legible.
+      var shown = strain * 2.4;
+      var neck = strain > state.curve.epsUts
+        ? Math.min(0.72, (strain - state.curve.epsUts) / Math.max(state.curve.epsTotal - state.curve.epsUts, 1e-6) * 0.72)
+        : 0;
+
+      buildSpecimen(shown, neck, 0);
+      el["live-force"].innerHTML = unit(pt.y, pt.y < 100 ? 1 : 0, "kN");
+      el["live-ext"].innerHTML = unit(pt.x, 2, "mm");
+      el["live-phase"].textContent =
+        strain <= state.curve.epsYield ? "Elastic"
+        : strain <= state.curve.epsUts ? "Yielding"
+        : "Necking";
+      drawCurve(k); renderFrame();
+      lastProgress = k;
+
+      if (k < 1) { requestAnimationFrame(frame); return; }
+      fracture();
+    }
+    requestAnimationFrame(frame);
+  }
+
+  function fracture() {
+    var t0 = performance.now(), dur = 620;
+    var shown = state.curve.epsTotal * 2.4;
+    el["live-phase"].textContent = "Fractured";
+    el["live-force"].innerHTML = unit(0, 1, "kN");
+    function frame(now) {
+      var k = Math.min(1, (now - t0) / dur);
+      var ease = 1 - Math.pow(1 - k, 3);
+      // slight elastic recoil as the load drops to zero
+      buildSpecimen(shown * (1 - 0.035 * ease), 0.72 + 0.2 * ease, 0.30 * ease);
+      renderFrame();
+      if (k < 1) requestAnimationFrame(frame);
+      else { animating = false; el.run.disabled = false; }
+    }
+    requestAnimationFrame(frame);
+  }
+
+  /* ---- wiring ---- */
+  MODEL.elements.forEach(function (name) {
+    el["el-" + name].addEventListener("input", function () {
+      state.preset = null; readInputs(); recompute(); resetSpecimen();
+    });
+  });
+  [el.dia, el.gauge].forEach(function (input) {
+    input.addEventListener("input", function () { readInputs(); recompute(); resetSpecimen(); });
+  });
+  el.run.addEventListener("click", runTest);
+
+  var mq = window.matchMedia("(prefers-color-scheme: dark)");
+  (mq.addEventListener ? mq.addEventListener.bind(mq, "change") : mq.addListener.bind(mq))(function () { drawCurve(lastProgress); });
+
+  initThree();
+  applyPreset(PRESETS[1]);   // opens in a realistic working state: 4140, ø10 × 50
+  resetSpecimen();
+})();
+</script>

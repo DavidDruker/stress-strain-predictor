@@ -35,7 +35,7 @@ prediction recovers the conditional median, which is the quantity MAE scores.
 | `ridge` | 143.7 ± 0.0 | 141.1 ± 14.3 | 6.0 ± 0.5 | 5 |
 | `random_forest` | 86.1 ± 0.0 | 76.2 ± 6.3 | 4.6 ± 0.5 | 5 |
 | `extra_trees` | 85.8 ± 0.0 | 78.9 ± 5.9 | 4.6 ± 0.5 | 5 |
-| `hist_gbm` | 86.0 ± 0.0 | 74.8 ± 5.1 | 4.6 ± 0.4 | 5 |
+| `hist_gbm` | 85.9 ± 0.0 | 74.7 ± 5.1 | 4.6 ± 0.4 | 5 |
 
 ### `gkf_grade`
 
@@ -59,7 +59,7 @@ prediction recovers the conditional median, which is the quantity MAE scores.
 | `ridge` | 169.1 ± 0.0 | 165.0 ± 89.0 | 6.5 ± 3.4 | 10 |
 | `random_forest` | 147.5 ± 0.0 | 126.1 ± 47.0 | 7.0 ± 3.6 | 10 |
 | `extra_trees` | 178.6 ± 0.0 | 143.1 ± 51.2 | 7.1 ± 3.0 | 10 |
-| `hist_gbm` | 162.2 ± 0.0 | 142.2 ± 51.6 | 6.5 ± 3.7 | 10 |
+| `hist_gbm` | 163.1 ± 0.0 | 143.1 ± 52.0 | 6.5 ± 3.7 | 10 |
 
 Families too small to hold out (kept in training): `NiCrMo_QT` (3 rows), `carbon_high` (1 rows), `carbon_medium` (3 rows), `high_Mn_austenitic` (1 rows), `nickel_superalloy` (1 rows)
 
@@ -73,7 +73,7 @@ Families too small to hold out (kept in training): `NiCrMo_QT` (3 rows), `carbon
 | `ridge` | 782.7 ± 0.0 | 937.7 ± 722.2 | 11.2 ± 5.1 | 2 |
 | `random_forest` | 174.5 ± 0.0 | 198.2 ± 27.4 | 8.1 ± 0.5 | 2 |
 | `extra_trees` | 209.5 ± 0.0 | 268.7 ± 21.1 | 8.7 ± 0.5 | 2 |
-| `hist_gbm` | 163.6 ± 0.0 | 171.1 ± 16.8 | 7.5 ± 1.3 | 2 |
+| `hist_gbm` | 163.7 ± 0.0 | 170.7 ± 17.7 | 7.5 ± 1.3 | 2 |
 
 ## Model error vs the floor, on matching rows
 
@@ -107,8 +107,8 @@ same rows and the same models. The right-hand column is the honest one.
 | `extra_trees` | YS | 85.8 | 100.3 | 1.17x |
 | `extra_trees` | UTS | 78.9 | 93.7 | 1.19x |
 | `extra_trees` | EL | 4.6 | 4.8 | 1.06x |
-| `hist_gbm` | YS | 86.0 | 101.9 | 1.18x |
-| `hist_gbm` | UTS | 74.8 | 98.1 | 1.31x |
+| `hist_gbm` | YS | 85.9 | 101.9 | 1.19x |
+| `hist_gbm` | UTS | 74.7 | 98.1 | 1.31x |
 | `hist_gbm` | EL | 4.6 | 4.9 | 1.05x |
 
 ## Correctness checks

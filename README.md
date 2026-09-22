@@ -7,14 +7,33 @@ prediction actually has.
 
 ```bash
 $ python -m stresspredict.predict --composition "C=0.40,Mn=0.80,Cr=1.00,Mo=0.20,Si=0.25"
-  yield strength      640.5 MPa
-  tensile strength    833.2 MPa
-  elongation           17.5 %
+  yield strength      679.9 MPa
+  tensile strength    884.4 MPa
+  elongation           16.3 %
   yield ratio         0.769
-  UTS x EL            14621 MPa.%
+  UTS x EL            14418 MPa.%
 
   all elements within training range
 ```
+
+There is also an **interactive test bench** in [`web/`](web): enter a chemistry and a
+specimen's diameter and gauge length, and it runs the same fitted model in the
+browser, animating a 3D bar being pulled to fracture. Asking for the geometry is
+what removes the percentages from the answer -- stress in MPa is N/mm^2, so a
+diameter turns it into a force and a gauge length turns elongation into
+millimetres of travel:
+
+| model output | with diameter and gauge length |
+|---|---|
+| yield strength, MPa | **force at yield, kN** |
+| tensile strength, MPa | **force at break, kN** |
+| elongation, % | **stretch before break, mm** (and final length) |
+
+The page loads the 300 fitted trees as JSON and evaluates them in JavaScript, so
+it is the evaluated model rather than a mock-up. `tests/test_web_parity.py` runs
+that JavaScript under Node and asserts it matches Python to 1e-9 on every
+training row -- the only thing that makes having the same maths in two languages
+defensible. Regenerate the export with `python -m stresspredict.export_web`.
 
 ## Results
 
@@ -47,7 +66,7 @@ measured-only floor would appear to beat a physical limit.
 
 | Target | Measured noise floor | Shipped model, measured rows | |
 |---|---|---|---|
-| Yield strength | 107.2 – 191.5 MPa | 144.6 MPa | **inside the band** |
+| Yield strength | 107.2 – 191.5 MPa | 144.4 MPa | **inside the band** |
 | Elongation | 3.3 – 6.1 pp | 5.94 pp | **inside the band** |
 | Tensile strength | 63.9 – 103.3 MPa | 108.9 MPa | just above — real headroom |
 
@@ -59,7 +78,7 @@ strength is the one target where a better model still has room.
 Pooling specification minima into that floor would report 61.2 MPa for yield
 strength instead of 107.2 — and the model would appear to beat physics. It does
 not; spec-minimum rows are simply near-deterministic per grade (the same model
-scores 87.6 MPa on them and 144.6 MPa on measurements).
+scores 87.7 MPa on them and 144.4 MPa on measurements).
 
 ### What grade leakage is worth
 
@@ -69,7 +88,7 @@ scores 87.6 MPa on them and 144.6 MPa on measurements).
 | `ridge` | 141.1 → 149.9 | 1.06× |
 | `random_forest` | 76.2 → 93.5 | 1.23× |
 | `extra_trees` | 78.9 → 93.7 | 1.19× |
-| `hist_gbm` | 74.8 → 98.1 | **1.31×** |
+| `hist_gbm` | 74.7 → 98.1 | **1.31×** |
 
 The dummy row is the control: ~0% inflation proves the two fold structures are
 otherwise comparable, so the gap is the leak and not an artefact of splitting.
@@ -83,12 +102,12 @@ Pooled means hide this, so the worst fold is reported:
 
 | Protocol | Question | UTS MAE | Worst fold |
 |---|---|---|---|
-| `lofo_family` | unseen alloy family | 142.2 | **232.6** (`stainless_steel`) |
-| `loso_source` | unseen laboratory | 171.1 | **183.3** (`emk_spec_verified`) |
+| `lofo_family` | unseen alloy family | 143.1 | **232.6** (`stainless_steel`) |
+| `loso_source` | unseen laboratory | 170.7 | **183.3** (`emk_spec_verified`) |
 
 Best family is `carbon_low` at 48.9 MPa — a 4.8× spread across families. Any
 claim about this model generalising to a new alloy class should quote 232.6, not
-142.2. Five families with 1–3 rows are too small to hold out; they stay in
+143.1. Five families with 1–3 rows are too small to hold out; they stay in
 training and are listed in the report.
 
 ### Why HistGradientBoosting ships, and why the ladder stops there
@@ -99,7 +118,7 @@ fold-to-fold standard deviation of 25.7 MPa (SEM 11.5) — about 0.4 SEM. Callin
 random forest the winner would be reading noise.
 
 The tiebreak is robustness under source shift, where the separation is real:
-HistGBM 171.1 MPa vs random forest 198.2 and extra trees 268.7, worst fold 183.3
+HistGBM 170.7 MPa vs random forest 198.2 and extra trees 268.7, worst fold 183.3
 vs 215.4 vs 295.2. HistGBM ships on that basis, not on the headline number.
 
 The same standard deviation licenses stopping the ladder: a 4.6 MPa difference

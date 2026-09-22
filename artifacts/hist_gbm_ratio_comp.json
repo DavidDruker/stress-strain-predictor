@@ -1,5 +1,5 @@
 {
-  "created_utc": "2026-09-22T00:15:32+00:00",
+  "created_utc": "2026-09-22T00:25:51+00:00",
   "stresspredict_version": "0.1.0",
   "model": "hist_gbm",
   "parameterisation": "ratio",

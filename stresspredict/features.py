@@ -82,7 +82,17 @@ class CompositionFeaturizer(BaseEstimator, TransformerMixin):
         # Ito-Bessyo cold-cracking parameter; weights low-carbon steels differently.
         d["pcm"] = (C + Si / 30 + Mn / 20 + Cu / 20 + Cr / 20
                     + Ni / 60 + Mo / 15 + V / 10)
-        d["total_alloy"] = el[list(schema.ELEMENTS)].sum(axis=1)
+        # Summed by explicit left-to-right addition rather than .sum(), which
+        # uses pairwise summation. The two differ in the last bit (~1e-15), and
+        # because a gradient-boosted tree is piecewise constant, a difference
+        # that small flips a split whenever a value sits on a threshold -- which
+        # moved one training row's predicted yield strength by 11% when the
+        # browser port summed sequentially. Fixing the order here makes the
+        # feature reproducible across implementations rather than merely close.
+        total = el[schema.ELEMENTS[0]].copy()
+        for element in schema.ELEMENTS[1:]:
+            total = total + el[element]
+        d["total_alloy"] = total
         d["fe_balance"] = 100.0 - d["total_alloy"]
         # Order-of-magnitude solid-solution strengthening proxy: approximate
         # ferrite strengthening coefficients in MPa per wt%. The absolute scale
