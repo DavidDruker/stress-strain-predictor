@@ -1,0 +1,8 @@
+{
+  "name": "stresspredict-uitest",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Drives web/app.html in a real browser to test the UI end to end.",
+  "type": "module",
+  "dependencies": { "puppeteer-core": "^23.0.0" }
+}

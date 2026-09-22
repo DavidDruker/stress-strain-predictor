@@ -36,3 +36,9 @@ reports/eval_*_random_kfold.json
 reports/eval_*_gkf_grade.json
 reports/eval_*_lofo_family.json
 reports/eval_*_loso_source.json
+
+# UI test harness: node deps and its generated report.
+tools/uitest/node_modules/
+tools/uitest/findings.json
+tools/uitest/package-lock.json
+tools/uitest/smoke.mjs

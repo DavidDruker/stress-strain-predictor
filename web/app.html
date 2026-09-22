@@ -1,7 +1,7 @@
 <title>Tensile Test Bench</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Barlow:wght@400;500&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
 
 <style>
   :root {
@@ -14,335 +14,197 @@
     --line: #d3d8dd;
     --line-2: #e3e7ea;
     --accent: #b8491a;
-    --accent-soft: #f3e2d8;
     --steel: #3d5a73;
-    --steel-soft: #dfe6ed;
-    --good: #2c6a4c;
     --warn: #8f5c10;
-    --crit: #a02a2a;
     --shadow: 0 1px 2px rgba(20, 30, 40, .07), 0 6px 20px rgba(20, 30, 40, .05);
-
     --f-display: "Barlow Condensed", "Arial Narrow", system-ui, sans-serif;
     --f-body: "Barlow", system-ui, -apple-system, sans-serif;
-    --f-mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+    --f-mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
   }
   @media (prefers-color-scheme: dark) {
     :root:not([data-theme="light"]) {
-      --ground: #0d1013;
-      --surface: #161a1e;
-      --surface-2: #1d2226;
-      --ink: #e7ebee;
-      --ink-2: #b9c2c9;
-      --muted: #8a949c;
-      --line: #2a3238;
-      --line-2: #222a30;
-      --accent: #ff8c42;
-      --accent-soft: #35211a;
-      --steel: #8bb0d2;
-      --steel-soft: #1c2831;
-      --good: #63b98c;
-      --warn: #d9a33f;
-      --crit: #e4736b;
-      --shadow: 0 1px 2px rgba(0, 0, 0, .4), 0 8px 24px rgba(0, 0, 0, .3);
+      --ground: #0d1013; --surface: #161a1e; --surface-2: #1d2226;
+      --ink: #e7ebee; --ink-2: #b9c2c9; --muted: #8a949c;
+      --line: #2a3238; --line-2: #222a30;
+      --accent: #ff8c42; --steel: #8bb0d2; --warn: #d9a33f;
+      --shadow: 0 1px 2px rgba(0,0,0,.4), 0 8px 24px rgba(0,0,0,.3);
     }
   }
   :root[data-theme="dark"] {
-    --ground: #0d1013;
-    --surface: #161a1e;
-    --surface-2: #1d2226;
-    --ink: #e7ebee;
-    --ink-2: #b9c2c9;
-    --muted: #8a949c;
-    --line: #2a3238;
-    --line-2: #222a30;
-    --accent: #ff8c42;
-    --accent-soft: #35211a;
-    --steel: #8bb0d2;
-    --steel-soft: #1c2831;
-    --good: #63b98c;
-    --warn: #d9a33f;
-    --crit: #e4736b;
-    --shadow: 0 1px 2px rgba(0, 0, 0, .4), 0 8px 24px rgba(0, 0, 0, .3);
+    --ground: #0d1013; --surface: #161a1e; --surface-2: #1d2226;
+    --ink: #e7ebee; --ink-2: #b9c2c9; --muted: #8a949c;
+    --line: #2a3238; --line-2: #222a30;
+    --accent: #ff8c42; --steel: #8bb0d2; --warn: #d9a33f;
+    --shadow: 0 1px 2px rgba(0,0,0,.4), 0 8px 24px rgba(0,0,0,.3);
   }
 
   * { box-sizing: border-box; }
-  body {
-    background: var(--ground);
-    color: var(--ink);
-    font-family: var(--f-body);
-    font-size: 15px;
-    line-height: 1.5;
-    margin: 0;
-  }
-  .wrap { max-width: 1240px; margin: 0 auto; padding: 0 16px; padding-block: 28px 56px; }
+  body { background: var(--ground); color: var(--ink); font-family: var(--f-body); font-size: 15px; line-height: 1.5; margin: 0; }
+  .wrap { max-width: 1080px; margin: 0 auto; padding: 0 16px; padding-block: 30px 48px; }
 
-  h1, h2, h3 { font-family: var(--f-display); margin: 0; text-wrap: balance; letter-spacing: .01em; }
-  h1 { font-size: clamp(30px, 5vw, 44px); font-weight: 700; line-height: 1.02; text-transform: uppercase; }
-  h2 { font-size: 20px; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; }
-  h3 { font-size: 15px; font-weight: 600; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); }
-  p { margin: 0; }
-
-  .eyebrow {
-    font-family: var(--f-mono); font-size: 11px; font-weight: 500;
-    letter-spacing: .16em; text-transform: uppercase; color: var(--accent);
-  }
-  .lede { color: var(--ink-2); max-width: 66ch; margin-top: 10px; }
-
-  header { border-bottom: 2px solid var(--ink); padding-bottom: 18px; margin-bottom: 24px; }
-  .plate {
-    display: flex; flex-wrap: wrap; gap: 8px 18px; margin-top: 14px;
-    font-family: var(--f-mono); font-size: 11px; color: var(--muted);
-  }
-  .plate span { white-space: nowrap; }
-  .plate b { color: var(--ink-2); font-weight: 500; }
-
-  .console { display: grid; gap: 18px; grid-template-areas: "stage" "controls"; }
-  @media (min-width: 940px) {
-    .console { grid-template-columns: 330px minmax(0, 1fr); grid-template-areas: "controls stage"; align-items: start; }
-  }
-  .stage { grid-area: stage; min-width: 0; }
-  .controls { grid-area: controls; min-width: 0; }
+  h1 { font-family: var(--f-display); font-size: clamp(28px, 4.6vw, 38px); font-weight: 700; text-transform: uppercase; letter-spacing: .015em; margin: 0; line-height: 1; }
+  .sub { color: var(--muted); margin: 8px 0 0; max-width: 60ch; }
+  header { margin-bottom: 22px; }
 
   .panel { background: var(--surface); border: 1px solid var(--line); border-radius: 4px; box-shadow: var(--shadow); }
-  .panel + .panel { margin-top: 14px; }
-  .panel-head {
-    display: flex; align-items: baseline; justify-content: space-between; gap: 12px;
-    padding: 11px 14px; border-bottom: 1px solid var(--line-2);
-  }
-  .panel-body { padding: 14px; }
 
-  /* ---- specimen stage ---- */
-  #viewport { display: block; width: 100%; height: clamp(230px, 34vw, 330px); }
-  .viewport-shell { position: relative; background: var(--surface-2); border-bottom: 1px solid var(--line-2); }
-  .grip-label {
-    position: absolute; bottom: 8px; font-family: var(--f-mono); font-size: 10px;
-    letter-spacing: .12em; text-transform: uppercase; color: var(--muted);
+  .console { display: grid; gap: 16px; grid-template-areas: "stage" "input"; }
+  @media (min-width: 880px) {
+    .console { grid-template-columns: 250px minmax(0, 1fr); grid-template-areas: "input stage"; align-items: start; }
   }
-  .grip-label.l { left: 12px; }
-  .grip-label.r { right: 12px; }
+  .stage { grid-area: stage; min-width: 0; }
+  .input { grid-area: input; min-width: 0; }
 
-  .live {
-    display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px;
-    background: var(--line-2); border-bottom: 1px solid var(--line-2);
-  }
-  .live div { background: var(--surface); padding: 10px 14px; }
-  .live .k { font-family: var(--f-mono); font-size: 10px; letter-spacing: .13em; text-transform: uppercase; color: var(--muted); }
-  .live .v { font-family: var(--f-mono); font-size: clamp(19px, 3.2vw, 25px); font-weight: 600; font-variant-numeric: tabular-nums; line-height: 1.25; }
-  .live .v u { text-decoration: none; font-size: .58em; font-weight: 500; color: var(--muted); margin-left: 3px; }
-  .live .phase { color: var(--accent); }
+  .lab { font-family: var(--f-mono); font-size: 10px; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); }
 
-  #curve { display: block; width: 100%; height: 230px; }
-
-  /* ---- controls ---- */
-  .presets { display: flex; flex-wrap: wrap; gap: 6px; }
-  .chip {
-    font-family: var(--f-display); font-size: 14px; font-weight: 600; letter-spacing: .03em;
-    padding: 5px 10px; border: 1px solid var(--line); background: var(--surface-2);
-    color: var(--ink-2); border-radius: 3px; cursor: pointer;
-  }
+  /* ---- input ---- */
+  .input .body { padding: 13px; }
+  .presets { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 12px; }
+  .chip { font-family: var(--f-display); font-size: 14px; font-weight: 600; padding: 4px 9px; border: 1px solid var(--line); background: var(--surface-2); color: var(--ink-2); border-radius: 3px; cursor: pointer; }
   .chip:hover { border-color: var(--steel); color: var(--ink); }
   .chip[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: #fff; }
-
-  .grid-el { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
-  .grid-geo { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-top: 4px; }
-  .field label {
-    display: block; font-family: var(--f-mono); font-size: 10px; letter-spacing: .1em;
-    text-transform: uppercase; color: var(--muted); margin-bottom: 3px;
-  }
-  .field input {
-    width: 100%; font-family: var(--f-mono); font-size: 14px; font-variant-numeric: tabular-nums;
-    padding: 7px 8px; border: 1px solid var(--line); border-radius: 3px;
-    background: var(--surface-2); color: var(--ink);
-  }
-  .field input:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; border-color: var(--accent); }
-  .field.flag input { border-color: var(--warn); }
-
-  .run {
-    width: 100%; margin-top: 14px; padding: 12px; cursor: pointer;
-    font-family: var(--f-display); font-size: 19px; font-weight: 700;
-    letter-spacing: .1em; text-transform: uppercase;
-    background: var(--accent); color: #fff; border: none; border-radius: 3px;
-  }
+  .els { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 7px; }
+  .f label { display: block; font-family: var(--f-mono); font-size: 10px; color: var(--muted); margin-bottom: 2px; }
+  .f input { width: 100%; font-family: var(--f-mono); font-size: 13px; font-variant-numeric: tabular-nums; padding: 6px 7px; border: 1px solid var(--line); border-radius: 3px; background: var(--surface-2); color: var(--ink); }
+  .f input:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+  .f.flag input { border-color: var(--warn); }
+  .run { width: 100%; margin-top: 12px; padding: 11px; cursor: pointer; font-family: var(--f-display); font-size: 18px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; background: var(--accent); color: #fff; border: none; border-radius: 3px; }
   .run:hover { filter: brightness(1.08); }
-  .run:disabled { opacity: .55; cursor: progress; }
+  .run:disabled { opacity: .5; cursor: progress; }
   .run:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
-
-  .guard { margin-top: 12px; display: grid; gap: 6px; }
+  .spec { margin-top: 10px; font-size: 12px; color: var(--muted); line-height: 1.4; }
+  .guard { margin-top: 10px; display: grid; gap: 5px; }
   .guard:empty { display: none; }
-  .flagline {
-    display: flex; gap: 8px; align-items: flex-start;
-    font-size: 13px; line-height: 1.35; color: var(--ink-2);
-    border-left: 3px solid var(--warn); padding: 6px 0 6px 9px; background: var(--surface-2);
-  }
-  .flagline b { font-family: var(--f-mono); font-size: 12px; color: var(--warn); }
+  .flagline { font-size: 12.5px; line-height: 1.35; color: var(--ink-2); border-left: 3px solid var(--warn); padding: 5px 0 5px 8px; background: var(--surface-2); }
+  .flagline b { font-family: var(--f-mono); color: var(--warn); }
+
+  /* ---- stage ---- */
+  .shell { position: relative; background: var(--surface-2); border-radius: 4px 4px 0 0; }
+  #viewport { display: block; width: 100%; height: clamp(250px, 40vw, 360px); touch-action: none; cursor: grab; border-radius: 4px 4px 0 0; }
+  #viewport:active { cursor: grabbing; }
+  .hint { position: absolute; left: 12px; bottom: 9px; pointer-events: none; }
+  .phase { position: absolute; right: 12px; bottom: 9px; font-family: var(--f-mono); font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--accent); }
+
+  .live { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; background: var(--line-2); border-top: 1px solid var(--line-2); }
+  .live div { background: var(--surface); padding: 9px 13px; }
+  .live .v { font-family: var(--f-mono); font-size: clamp(17px, 2.6vw, 21px); font-weight: 600; font-variant-numeric: tabular-nums; line-height: 1.3; }
+  .live .v u { text-decoration: none; font-size: .58em; font-weight: 500; color: var(--muted); margin-left: 3px; }
+  #curve { display: block; width: 100%; height: 150px; border-top: 1px solid var(--line-2); }
 
   /* ---- results ---- */
-  .results { margin-top: 18px; }
-  .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(168px, 1fr)); gap: 1px; background: var(--line-2); }
-  .tile { background: var(--surface); padding: 15px 16px; }
-  .tile .k { font-family: var(--f-mono); font-size: 10px; letter-spacing: .13em; text-transform: uppercase; color: var(--muted); }
-  .tile .v {
-    font-family: var(--f-mono); font-size: clamp(25px, 3.6vw, 33px); font-weight: 600;
-    font-variant-numeric: tabular-nums; line-height: 1.18; margin-top: 4px;
-  }
+  .results { margin-top: 16px; }
+  .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1px; background: var(--line-2); border-radius: 4px; overflow: hidden; }
+  .tile { background: var(--surface); padding: 14px 15px; transition: background .5s ease; }
+  .tile .v { font-family: var(--f-mono); font-size: clamp(23px, 3.4vw, 30px); font-weight: 600; font-variant-numeric: tabular-nums; line-height: 1.2; margin-top: 3px; }
   .tile .v u { text-decoration: none; font-size: .46em; font-weight: 500; color: var(--muted); margin-left: 4px; }
-  .tile.hero .v { color: var(--accent); }
+  .tile.key .v { color: var(--accent); }
+  .results.pending .tile .v { color: var(--muted); opacity: .4; }
+  .results.flash .tile { background: var(--surface-2); }
+  .strengths { padding: 11px 15px; border-top: 1px solid var(--line-2); font-family: var(--f-mono); font-size: 12.5px; color: var(--muted); display: flex; flex-wrap: wrap; gap: 6px 20px; }
+  .strengths b { color: var(--ink-2); font-weight: 500; }
 
-  .secondary { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 9px 20px; padding: 14px; }
-  .srow { display: flex; justify-content: space-between; gap: 12px; align-items: baseline; border-bottom: 1px dotted var(--line); padding-bottom: 5px; }
-  .srow span { font-size: 13px; color: var(--muted); }
-  .srow b { font-family: var(--f-mono); font-size: 14px; font-weight: 500; font-variant-numeric: tabular-nums; color: var(--ink); white-space: nowrap; }
+  /* ---- limits ---- */
+  .limits { margin-top: 16px; padding: 15px; }
+  .limits ul { margin: 0; padding: 0; list-style: none; display: grid; gap: 9px; }
+  .limits li { display: grid; grid-template-columns: 3px 1fr; gap: 10px; font-size: 14px; color: var(--ink-2); line-height: 1.45; }
+  .limits li::before { content: ""; background: var(--accent); border-radius: 1px; }
+  .limits b { color: var(--ink); font-weight: 500; }
+  details { margin-top: 12px; }
+  summary { cursor: pointer; font-family: var(--f-mono); font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--steel); }
+  summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  details ul { margin-top: 10px; }
+  details li::before { background: var(--steel); }
 
-  /* ---- notes ---- */
-  .notes { margin-top: 18px; }
-  .notes ul { margin: 0; padding-left: 0; list-style: none; display: grid; gap: 11px; }
-  .notes li { display: grid; grid-template-columns: 13px 1fr; gap: 10px; font-size: 14px; color: var(--ink-2); line-height: 1.5; }
-  .notes li::before { content: ""; width: 3px; height: 1.05em; background: var(--steel); margin-top: .2em; border-radius: 1px; }
-  .notes li.hard::before { background: var(--crit); }
-  .notes b { color: var(--ink); font-weight: 600; }
-  .notes code { font-family: var(--f-mono); font-size: .88em; background: var(--surface-2); padding: 1px 4px; border-radius: 2px; }
-
-  footer { margin-top: 26px; padding-top: 14px; border-top: 1px solid var(--line); font-size: 13px; color: var(--muted); }
+  footer { margin-top: 20px; font-size: 12.5px; color: var(--muted); }
   footer a { color: var(--steel); }
-
   @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
 </style>
 
 <div class="wrap">
   <header>
-    <div class="eyebrow">Composition &rarr; tensile landmarks</div>
     <h1>Tensile Test Bench</h1>
-    <p class="lede">
-      Type a steel's chemistry and the specimen's dimensions, and the model predicts what
-      a tensile test would measure &mdash; reported as forces and millimetres, not percentages.
-      The gradient-boosted model runs here in the page; it is the same fitted model the
-      evaluation measured.
-    </p>
-    <div class="plate">
-      <span><b>Model</b> HistGradientBoosting &times;3</span>
-      <span><b>Trained on</b> 1,359 heats / 562 grades</span>
-      <span><b>Inputs</b> chemistry only</span>
-      <span><b>Protocol</b> grade-grouped CV</span>
-      <span><b>Data</b> SteelBench v1.0 &middot; CC BY 4.0</span>
-    </div>
+    <p class="sub">Give a steel its chemistry. The model predicts what pulling it apart would
+      measure &mdash; read off at the moment it breaks.</p>
   </header>
 
   <main class="console">
     <section class="stage">
       <div class="panel">
-        <div class="panel-head">
-          <h2>Specimen</h2>
-          <span class="eyebrow" id="stage-scale">round bar</span>
-        </div>
-        <div class="viewport-shell">
-          <canvas id="viewport"></canvas>
-          <span class="grip-label l">fixed grip</span>
-          <span class="grip-label r">moving crosshead</span>
+        <div class="shell">
+          <canvas id="viewport" role="img" aria-label="3D view of the test specimen being pulled to fracture"></canvas>
+          <span class="lab hint">Drag to rotate &middot; scroll to zoom</span>
+          <span class="phase" id="phase">At rest</span>
         </div>
         <div class="live">
-          <div><div class="k">Load</div><div class="v" id="live-force">0.0<u>kN</u></div></div>
-          <div><div class="k">Extension</div><div class="v" id="live-ext">0.00<u>mm</u></div></div>
-          <div><div class="k">Stage</div><div class="v phase" id="live-phase">At rest</div></div>
+          <div><div class="lab">Load</div><div class="v" id="live-force">0.0<u>kN</u></div></div>
+          <div><div class="lab">Extension</div><div class="v" id="live-ext">0.00<u>mm</u></div></div>
         </div>
-        <canvas id="curve"></canvas>
+        <canvas id="curve" role="img" aria-label="Load-extension curve from zero load to fracture"></canvas>
       </div>
     </section>
 
-    <aside class="controls">
+    <aside class="input">
       <div class="panel">
-        <div class="panel-head"><h2>Chemistry</h2><span class="eyebrow">wt %</span></div>
-        <div class="panel-body">
+        <div class="body">
+          <div class="lab" style="margin-bottom:7px">Composition &mdash; wt %</div>
           <div class="presets" id="presets"></div>
-          <div class="grid-el" id="elements" style="margin-top:12px"></div>
-        </div>
-      </div>
-
-      <div class="panel">
-        <div class="panel-head"><h2>Specimen size</h2><span class="eyebrow">mm</span></div>
-        <div class="panel-body">
-          <div class="grid-geo">
-            <div class="field">
-              <label for="dia">Diameter</label>
-              <input id="dia" type="number" min="0.5" max="200" step="0.5" value="10">
-            </div>
-            <div class="field">
-              <label for="gauge">Gauge length</label>
-              <input id="gauge" type="number" min="5" max="2000" step="5" value="50">
-            </div>
-          </div>
-          <button class="run" id="run" type="button">Run tensile test</button>
+          <div class="els" id="els"></div>
+          <button class="run" id="run" type="button">Pull to failure</button>
+          <p class="spec">Standard specimen: round bar, &oslash;10&nbsp;mm, 50&nbsp;mm gauge
+            (ISO&nbsp;6892-1 proportional).</p>
           <div class="guard" id="guard"></div>
         </div>
       </div>
     </aside>
   </main>
 
-  <section class="results">
+  <section class="results" id="results" aria-live="polite">
     <div class="panel">
-      <div class="panel-head">
-        <h2>Predicted result</h2>
-        <span class="eyebrow" id="result-for">&nbsp;</span>
-      </div>
       <div class="tiles">
-        <div class="tile hero"><div class="k">Force at yield</div><div class="v" id="r-yf">&mdash;</div></div>
-        <div class="tile hero"><div class="k">Force at break</div><div class="v" id="r-bf">&mdash;</div></div>
-        <div class="tile"><div class="k">Stretch before break</div><div class="v" id="r-ext">&mdash;</div></div>
-        <div class="tile"><div class="k">Length at break</div><div class="v" id="r-len">&mdash;</div></div>
+        <div class="tile key"><div class="lab">Force at yield</div><div class="v" id="r-yf">&mdash;</div></div>
+        <div class="tile key"><div class="lab">Force at break</div><div class="v" id="r-bf">&mdash;</div></div>
+        <div class="tile"><div class="lab">Stretch before break</div><div class="v" id="r-ext">&mdash;</div></div>
+        <div class="tile"><div class="lab">Length at break</div><div class="v" id="r-len">&mdash;</div></div>
       </div>
-      <div class="secondary">
-        <div class="srow"><span>Yield strength</span><b id="s-ys">&mdash;</b></div>
-        <div class="srow"><span>Tensile strength</span><b id="s-uts">&mdash;</b></div>
-        <div class="srow"><span>Stretch at yield</span><b id="s-ey">&mdash;</b></div>
-        <div class="srow"><span>Cross-section</span><b id="s-area">&mdash;</b></div>
-        <div class="srow"><span>Mass per metre</span><b id="s-mass">&mdash;</b></div>
-        <div class="srow"><span>Elastic stiffness</span><b id="s-k">&mdash;</b></div>
+      <div class="strengths">
+        <span>Yield strength <b id="s-ys">&mdash;</b></span>
+        <span>Tensile strength <b id="s-uts">&mdash;</b></span>
+        <span>Cross-section <b id="s-area">78.5 mm&sup2;</b></span>
       </div>
     </div>
   </section>
 
-  <section class="notes">
-    <div class="panel">
-      <div class="panel-head"><h2>What this can and cannot tell you</h2></div>
-      <div class="panel-body">
-        <ul>
-          <li class="hard"><span><b>It cannot see heat treatment.</b> Two bars of identical
-            chemistry, one quenched and tempered at 200&nbsp;&deg;C and one at 650&nbsp;&deg;C, differ by
-            500&nbsp;MPa or more in yield strength &mdash; and reach this model as the same input. Read
-            the numbers as <b>what steels of roughly this chemistry usually do</b>, not as what
-            your heat will do.</span></li>
-          <li class="hard"><span><b>It is at its measured ceiling, not merely approximate.</b>
-            Bars sharing an exact chemistry in the training data still scatter by
-            107&ndash;191&nbsp;MPa in yield strength. That scatter is processing history, so it is a
-            floor no chemistry-only model can cross. The model already sits inside it.</span></li>
-          <li><span><b>Unfamiliar alloy families are the real failure mode.</b> On four of
-            twelve held-out families the model did worse than simply guessing the training
-            median. The range check beside the inputs catches out-of-range <em>elements</em>, but
-            a chemistry can sit inside every range and still belong to a family the model has
-            never seen.</span></li>
-          <li><span><b>The stretch figure assumes a proportional specimen.</b> Elongation is only
-            comparable within a gauge-length standard &mdash; A5 and A50&nbsp;mm give different
-            numbers for the same steel &mdash; and the training data does not record which standard
-            each row used. Millimetres of stretch inherit that uncertainty; forces do not.</span></li>
-          <li><span><b>The curve between the points is drawn, not predicted.</b> The model
-            outputs three landmarks. No open dataset found reports strain at maximum load or a
-            hardening exponent, so the path between them is a Hollomon power law closed with the
-            Consid&egrave;re condition and pinned to the predicted points. The <em>shape</em> is a
-            reconstruction; only the marked points are predictions.</span></li>
-          <li><span><b>Modelled as a solid round bar.</b> A stranded wire rope of the same
-            nominal area carries roughly 10&ndash;15% less, because the helical lay means the wires
-            do not all pull along the axis. Treat these forces as an upper bound for rope.</span></li>
-          <li class="hard"><span><b>Not for design allowables.</b> These are statistical
-            predictions from 1,359 heats, 55% of which are specification minima rather than
-            measurements. They are not a substitute for a tensile test.</span></li>
-        </ul>
-      </div>
-    </div>
+  <section class="panel limits">
+    <ul>
+      <li><span><b>Only three points are predicted</b> &mdash; yield, maximum load and
+        fracture. The curve drawn between them is a Hollomon power law pinned to those
+        points, not a prediction: no open dataset reports strain at maximum load.</span></li>
+      <li><span><b>Chemistry cannot see heat treatment.</b> The same steel tempered at
+        200&nbsp;&deg;C and at 650&nbsp;&deg;C differs by 500&nbsp;MPa or more and reaches the model as
+        the same input. Read this as what steels of roughly this chemistry usually do.</span></li>
+      <li><span><b>It is already at its ceiling.</b> Bars of identical chemistry scatter
+        107&ndash;191&nbsp;MPa in yield strength, because they differ by processing. The model
+        sits inside that band, so the error is the data's, not the model's.</span></li>
+    </ul>
+    <details>
+      <summary>Further limits</summary>
+      <ul>
+        <li><span>On four of twelve held-out alloy families it did worse than guessing the
+          training median. The check beside the inputs catches out-of-range elements, but a
+          chemistry can sit inside every range and still belong to an unfamiliar family.</span></li>
+        <li><span>Elongation is only comparable within a gauge-length standard, and the
+          training data does not record which one each row used. Millimetres of stretch
+          inherit that; the forces do not.</span></li>
+        <li><span>Trained on 1,359 heats, 55% of them specification minima rather than
+          measurements. Not a substitute for a tensile test, and not for design
+          allowables.</span></li>
+      </ul>
+    </details>
   </section>
 
   <footer>
-    Model, evaluation and provenance:
-    <a href="https://github.com/DavidDruker/stress-strain-predictor">github.com/DavidDruker/stress-strain-predictor</a>.
-    Training data: SteelBench v1.0, DOI 10.5281/zenodo.18530558, CC BY 4.0.
+    <a href="https://github.com/DavidDruker/stress-strain-predictor">Model, evaluation and provenance</a>
+    &middot; SteelBench v1.0, CC BY 4.0
   </footer>
 </div>
 
@@ -353,494 +215,515 @@
   "use strict";
 
   var MODEL = window.SP_MODEL;
-  var E_MODULUS = 205000; // MPa; essentially constant for steel, so never modelled
+  var E_MODULUS = 205000;
+  var DIA = 10, GAUGE = 50;                 // fixed standard specimen
+  var AREA = Math.PI * Math.pow(DIA / 2, 2);
 
-  /* ------------------------------------------------------------------ *
-   * Inference: evaluates the exported trees. Mirrors stresspredict's
-   * features.py and targets.py; a Node parity test asserts agreement with
-   * Python to 1e-9 on every training row.
-   * ------------------------------------------------------------------ */
-  function buildFeatures(composition) {
-    var els = MODEL.elements, i;
-    var raw = [], filled = [];
+  /* ---------- inference: evaluates the exported trees ---------- */
+  function buildFeatures(c) {
+    var els = MODEL.elements, raw = [], fil = [], i;
     for (i = 0; i < els.length; i++) {
-      var v = composition[els[i]];
-      var isNum = (v !== undefined && v !== null && !isNaN(v));
-      raw.push(isNum ? Number(v) : NaN);
-      filled.push(isNum ? Number(v) : 0);
+      var v = c[els[i]], ok = (v !== undefined && v !== null && !isNaN(v));
+      raw.push(ok ? +v : NaN); fil.push(ok ? +v : 0);
     }
-    function g(name) { return filled[els.indexOf(name)]; }
+    var g = function (n) { return fil[els.indexOf(n)]; };
     var C = g("C"), Mn = g("Mn"), Si = g("Si"), Cr = g("Cr");
     var Ni = g("Ni"), Mo = g("Mo"), V = g("V"), Cu = g("Cu");
-
-    // Left-to-right, matching Python exactly: a last-bit difference here
-    // flips a tree split and can move a prediction by several percent.
-    var total = 0;
-    for (i = 0; i < filled.length; i++) total = total + filled[i];
-
+    var total = 0; for (i = 0; i < fil.length; i++) total = total + fil[i];  // order matters
     var vals = {
       ce_iiw: C + Mn / 6 + (Cr + Mo + V) / 5 + (Ni + Cu) / 15,
       pcm: C + Si / 30 + Mn / 20 + Cu / 20 + Cr / 20 + Ni / 60 + Mo / 15 + V / 10,
-      total_alloy: total,
-      fe_balance: 100 - total,
+      total_alloy: total, fe_balance: 100 - total,
       ss_proxy: 83 * Si + 32 * Mn + 33 * Ni + 11 * Cr + 11 * Mo + 39 * Cu,
       carbide_former: Cr + Mo + V,
       cr_eq_schaeffler: Cr + Mo + 1.5 * Si,
       ni_eq_schaeffler: Ni + 30 * C + 0.5 * Mn
     };
-    for (i = 0; i < els.length; i++) vals[els[i]] = filled[i];
+    for (i = 0; i < els.length; i++) vals[els[i]] = fil[i];
     for (i = 0; i < MODEL.indicator_elements.length; i++) {
-      var el = MODEL.indicator_elements[i];
-      vals["missing__" + el] = isNaN(raw[els.indexOf(el)]) ? 1 : 0;
+      var e = MODEL.indicator_elements[i];
+      vals["missing__" + e] = isNaN(raw[els.indexOf(e)]) ? 1 : 0;
     }
     return MODEL.feature_names.map(function (n) { return vals[n]; });
   }
-
-  function treeValue(tree, x) {
-    var node = 0;
-    for (var step = 0; step < 4096; step++) {
-      if (tree.lf[node]) return tree.v[node];
-      var value = x[tree.f[node]];
-      if (isNaN(value)) node = tree.m[node] ? tree.l[node] : tree.r[node];
-      else node = value <= tree.th[node] ? tree.l[node] : tree.r[node];
+  function treeValue(t, x) {
+    var n = 0;
+    for (var s = 0; s < 4096; s++) {
+      if (t.lf[n]) return t.v[n];
+      var v = x[t.f[n]];
+      n = isNaN(v) ? (t.m[n] ? t.l[n] : t.r[n]) : (v <= t.th[n] ? t.l[n] : t.r[n]);
     }
-    throw new Error("tree traversal did not reach a leaf");
+    throw new Error("no leaf");
   }
-
-  function component(name, x) {
+  function comp(name, x) {
     var c = MODEL.components[name], z = c.baseline;
     for (var i = 0; i < c.trees.length; i++) z += treeValue(c.trees[i], x);
     return c.link === "log" ? Math.exp(z) : 1 / (1 + Math.exp(-z));
   }
-
-  function predict(composition) {
-    var x = buildFeatures(composition);
-    var uts = component("tensile_strength", x);
-    var ratio = component("yield_ratio", x);
-    var elongation = component("elongation", x);
+  function predict(c) {
+    var x = buildFeatures(c);
+    var uts = comp("tensile_strength", x), ratio = comp("yield_ratio", x);
     var ys = uts * ratio;
-    if (!(ys < uts)) ys = uts * (1 - Number.EPSILON); // strict by construction
-    return { ys: ys, uts: uts, elongation: elongation };
+    if (!(ys < uts)) ys = uts * (1 - Number.EPSILON);
+    return { ys: ys, uts: uts, el: comp("elongation", x) };
   }
-
-  function rangeGuard(composition) {
-    var flags = [];
-    Object.keys(composition).forEach(function (el) {
-      var value = composition[el];
-      if (value === undefined || value === null || isNaN(value)) return;
-      var r = MODEL.element_ranges[el];
-      if (!r) return;
-      if (value < r.min || value > r.max) flags.push({ el: el, value: value, min: r.min, max: r.max });
+  function guardFlags(c) {
+    var out = [];
+    Object.keys(c).forEach(function (el) {
+      var v = c[el], r = MODEL.element_ranges[el];
+      if (v == null || isNaN(v) || !r) return;
+      if (v < r.min || v > r.max) out.push({ el: el, v: v, min: r.min, max: r.max });
     });
-    return flags;
+    return out;
   }
 
-  /* ------------------------------------------------------------------ *
-   * Geometry turns predictions into forces and millimetres. This is the
-   * arithmetic that removes every percentage from the readout.
-   * ------------------------------------------------------------------ */
-  function engineering(p, dia, gauge) {
-    var area = Math.PI * Math.pow(dia / 2, 2);       // mm^2
-    var ext = (p.elongation / 100) * gauge;           // mm
+  /* ---------- geometry: what removes the percentages ---------- */
+  function engineering(p) {
+    var ext = (p.el / 100) * GAUGE;
     return {
-      area: area,
-      yieldForce: p.ys * area / 1000,                 // kN  (MPa = N/mm^2)
-      breakForce: p.uts * area / 1000,
-      extYield: (p.ys / E_MODULUS) * gauge,
-      extBreak: ext,
-      finalLength: gauge + ext,
-      massPerM: area * 1000 * 7.85 / 1e6,             // kg/m
-      stiffness: E_MODULUS * area / gauge / 1000      // kN/mm
+      yieldForce: p.ys * AREA / 1000, breakForce: p.uts * AREA / 1000,
+      extBreak: ext, finalLength: GAUGE + ext
     };
   }
-
-  /* Curve through the landmarks. Shape is reconstructed, not predicted. */
-  function curvePoints(p, eng, gauge, n) {
-    n = n || 240;
-    var epsTotal = p.elongation / 100;
-    var epsYield = p.ys / E_MODULUS;
-    var hard = Math.max(0.02, Math.min(0.30, Math.log(p.uts / p.ys) / 2 + 0.05));
-    var epsUts = Math.min(Math.max(hard, epsYield * 2), epsTotal * 0.75);
-    var K = p.uts / Math.pow(Math.max(epsUts, 1e-6), hard);
-
-    var pts = [];
-    for (var i = 0; i < n; i++) {
-      var e = (i / (n - 1)) * epsTotal, s;
+  function curveOf(p, eng) {
+    var epsTotal = p.el / 100, epsYield = p.ys / E_MODULUS;
+    var n = Math.max(0.02, Math.min(0.30, Math.log(p.uts / p.ys) / 2 + 0.05));
+    var epsUts = Math.min(Math.max(n, epsYield * 2), epsTotal * 0.75);
+    var K = p.uts / Math.pow(Math.max(epsUts, 1e-6), n);
+    var pts = [], N = 240;
+    for (var i = 0; i < N; i++) {
+      var e = (i / (N - 1)) * epsTotal, s;
       if (e <= epsYield) s = E_MODULUS * e;
-      else if (e <= epsUts) s = Math.min(K * Math.pow(e, hard), p.uts);
-      else {
-        var t = (e - epsUts) / Math.max(epsTotal - epsUts, 1e-9);
-        s = p.uts * (1 - 0.35 * t * t);
-      }
-      pts.push({ x: e * gauge, y: s * eng.area / 1000, strain: e });
+      else if (e <= epsUts) s = Math.min(K * Math.pow(e, n), p.uts);
+      else { var t = (e - epsUts) / Math.max(epsTotal - epsUts, 1e-9); s = p.uts * (1 - 0.35 * t * t); }
+      pts.push({ x: e * GAUGE, y: s * AREA / 1000, strain: e });
     }
     return { pts: pts, epsYield: epsYield, epsUts: epsUts, epsTotal: epsTotal };
   }
 
-  /* ------------------------------------------------------------------ *
-   * State
-   * ------------------------------------------------------------------ */
+  /* ---------- state + elements ---------- */
   var PRESETS = [
-    { name: "AISI 1045", c: { C: 0.45, Mn: 0.75, Si: 0.25 } },
-    { name: "AISI 4140", c: { C: 0.40, Mn: 0.88, Si: 0.23, Cr: 0.95, Mo: 0.20 } },
-    { name: "S355", c: { C: 0.18, Mn: 1.50, Si: 0.40, Cu: 0.30 } },
-    { name: "304", c: { C: 0.06, Mn: 1.50, Si: 0.50, Cr: 18.5, Ni: 9.0 } },
-    { name: "316L", c: { C: 0.02, Mn: 1.50, Si: 0.50, Cr: 17.0, Ni: 11.0, Mo: 2.20 } },
-    { name: "Duplex 2205", c: { C: 0.02, Mn: 1.50, Si: 0.45, Cr: 22.0, Ni: 5.5, Mo: 3.10 } }
+    { n: "AISI 1045", c: { C: 0.45, Mn: 0.75, Si: 0.25 } },
+    { n: "AISI 4140", c: { C: 0.40, Mn: 0.88, Si: 0.23, Cr: 0.95, Mo: 0.20 } },
+    { n: "S355", c: { C: 0.18, Mn: 1.50, Si: 0.40, Cu: 0.30 } },
+    { n: "304", c: { C: 0.06, Mn: 1.50, Si: 0.50, Cr: 18.5, Ni: 9.0 } }
   ];
-
-  var state = { composition: {}, dia: 10, gauge: 50, prediction: null, eng: null, curve: null, preset: "AISI 4140" };
+  var S = { c: {}, p: null, eng: null, curve: null, preset: null };
   var el = {};
-  ["presets", "elements", "dia", "gauge", "run", "guard", "curve", "viewport",
-   "live-force", "live-ext", "live-phase", "result-for", "stage-scale",
-   "r-yf", "r-bf", "r-ext", "r-len",
-   "s-ys", "s-uts", "s-ey", "s-area", "s-mass", "s-k"].forEach(function (id) {
-    el[id] = document.getElementById(id);
-  });
+  ["presets", "els", "run", "guard", "curve", "viewport", "phase", "results",
+   "live-force", "live-ext", "r-yf", "r-bf", "r-ext", "r-len", "s-ys", "s-uts", "s-area"]
+    .forEach(function (id) { el[id] = document.getElementById(id); });
 
   var fmt = function (v, d) { return v.toLocaleString(undefined, { minimumFractionDigits: d, maximumFractionDigits: d }); };
-  var unit = function (v, d, u) { return fmt(v, d) + '<u>' + u + '</u>'; };
+  var unit = function (v, d, u) { return fmt(v, d) + "<u>" + u + "</u>"; };
 
-  /* ---- build inputs ---- */
   MODEL.elements.forEach(function (name) {
-    var wrap = document.createElement("div");
-    wrap.className = "field";
-    wrap.innerHTML = '<label for="el-' + name + '">' + name + '</label>' +
+    var w = document.createElement("div");
+    w.className = "f";
+    w.innerHTML = '<label for="el-' + name + '">' + name + '</label>' +
       '<input id="el-' + name + '" type="number" min="0" step="0.01" inputmode="decimal">';
-    el.elements.appendChild(wrap);
-    el["el-" + name] = wrap.querySelector("input");
-    el["wrap-" + name] = wrap;
+    el.els.appendChild(w);
+    el["el-" + name] = w.querySelector("input");
+    el["w-" + name] = w;
   });
-
   PRESETS.forEach(function (p) {
     var b = document.createElement("button");
-    b.type = "button"; b.className = "chip"; b.textContent = p.name;
+    b.type = "button"; b.className = "chip"; b.textContent = p.n;
     b.setAttribute("aria-pressed", "false");
-    b.addEventListener("click", function () { applyPreset(p); });
-    el.presets.appendChild(b);
-    p.node = b;
+    b.addEventListener("click", function () { apply(p); });
+    el.presets.appendChild(b); p.node = b;
   });
 
-  function applyPreset(p) {
-    state.preset = p.name;
-    MODEL.elements.forEach(function (name) {
-      el["el-" + name].value = (p.c[name] === undefined) ? "" : p.c[name];
-    });
-    readInputs(); recompute(); resetSpecimen();
+  function apply(p) {
+    S.preset = p.n;
+    MODEL.elements.forEach(function (n) { el["el-" + n].value = p.c[n] === undefined ? "" : p.c[n]; });
+    read(); recompute(); showResults(); rest();
   }
-
-  function markPreset() {
-    PRESETS.forEach(function (p) { p.node.setAttribute("aria-pressed", String(p.name === state.preset)); });
-  }
-
-  function readInputs() {
+  function read() {
     var c = {};
-    MODEL.elements.forEach(function (name) {
-      var raw = el["el-" + name].value.trim();
-      if (raw !== "") { var v = parseFloat(raw); if (!isNaN(v)) c[name] = v; }
+    MODEL.elements.forEach(function (n) {
+      var raw = el["el-" + n].value.trim();
+      if (raw !== "") { var v = parseFloat(raw); if (!isNaN(v)) c[n] = v; }
     });
-    state.composition = c;
-    state.dia = Math.max(0.5, parseFloat(el.dia.value) || 10);
-    state.gauge = Math.max(5, parseFloat(el.gauge.value) || 50);
+    S.c = c;
   }
 
-  /* ---- results ---- */
   function recompute() {
-    var p = predict(state.composition);
-    var eng = engineering(p, state.dia, state.gauge);
-    state.prediction = p; state.eng = eng;
-    state.curve = curvePoints(p, eng, state.gauge);
+    S.p = predict(S.c);
+    S.eng = engineering(S.p);
+    S.curve = curveOf(S.p, S.eng);
+    PRESETS.forEach(function (p) { p.node.setAttribute("aria-pressed", String(p.n === S.preset)); });
 
-    el["r-yf"].innerHTML = unit(eng.yieldForce, eng.yieldForce < 100 ? 1 : 0, "kN");
-    el["r-bf"].innerHTML = unit(eng.breakForce, eng.breakForce < 100 ? 1 : 0, "kN");
-    el["r-ext"].innerHTML = unit(eng.extBreak, 1, "mm");
-    el["r-len"].innerHTML = unit(eng.finalLength, 1, "mm");
-
-    el["s-ys"].textContent = fmt(p.ys, 0) + " MPa";
-    el["s-uts"].textContent = fmt(p.uts, 0) + " MPa";
-    el["s-ey"].textContent = fmt(eng.extYield, 2) + " mm";
-    el["s-area"].textContent = fmt(eng.area, 1) + " mm²";
-    el["s-mass"].textContent = fmt(eng.massPerM, 2) + " kg/m";
-    el["s-k"].textContent = fmt(eng.stiffness, 1) + " kN/mm";
-
-    el["result-for"].textContent = "ø" + fmt(state.dia, 1) + " mm × " + fmt(state.gauge, 0) + " mm";
-    el["stage-scale"].textContent = "round bar ø" + fmt(state.dia, 1) + " mm";
-
-    var flags = rangeGuard(state.composition);
-    MODEL.elements.forEach(function (n) { el["wrap-" + n].classList.remove("flag"); });
+    var flags = guardFlags(S.c);
+    MODEL.elements.forEach(function (n) { el["w-" + n].classList.remove("flag"); });
     el.guard.innerHTML = "";
     flags.forEach(function (f) {
-      el["wrap-" + f.el].classList.add("flag");
+      el["w-" + f.el].classList.add("flag");
       var d = document.createElement("div");
       d.className = "flagline";
-      d.innerHTML = "<b>" + f.el + "</b><span>" + fmt(f.value, 2) +
-        " wt% is outside the range the model was trained on (" +
-        fmt(f.min, 2) + "–" + fmt(f.max, 2) + "). Treat this prediction as an extrapolation.</span>";
+      d.innerHTML = "<b>" + f.el + "</b> " + fmt(f.v, 2) + " wt% is outside the trained range (" +
+        fmt(f.min, 2) + "–" + fmt(f.max, 2) + "). Extrapolation.";
       el.guard.appendChild(d);
     });
-
-    markPreset();
     drawCurve(1);
   }
 
-  /* ---- stress-strain curve, plotted in force and millimetres ---- */
-  var cctx = el.curve.getContext("2d");
-  function css(name) { return getComputedStyle(document.documentElement).getPropertyValue(name).trim(); }
+  /* Results read off the break, so they are withheld while the bar is still whole. */
+  function showResults() {
+    var e = S.eng;
+    el["r-yf"].innerHTML = unit(e.yieldForce, e.yieldForce < 100 ? 1 : 0, "kN");
+    el["r-bf"].innerHTML = unit(e.breakForce, e.breakForce < 100 ? 1 : 0, "kN");
+    el["r-ext"].innerHTML = unit(e.extBreak, 1, "mm");
+    el["r-len"].innerHTML = unit(e.finalLength, 1, "mm");
+    el["s-ys"].textContent = fmt(S.p.ys, 0) + " MPa";
+    el["s-uts"].textContent = fmt(S.p.uts, 0) + " MPa";
+    el.results.classList.remove("pending");
+  }
+  function hideResults() { el.results.classList.add("pending"); }
+
+  /* ---------- load–extension curve ---------- */
+  var cc = el.curve.getContext("2d");
+  var css = function (n) { return getComputedStyle(document.documentElement).getPropertyValue(n).trim(); };
 
   function drawCurve(progress) {
     var dpr = Math.min(window.devicePixelRatio || 1, 2);
     var w = el.curve.clientWidth, h = el.curve.clientHeight;
-    el.curve.width = Math.round(w * dpr); el.curve.height = Math.round(h * dpr);
-    cctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    cctx.clearRect(0, 0, w, h);
-    if (!state.curve) return;
+    if (!w) return;
+    // Assigning canvas.width reallocates the backing store and clears it, so it
+    // belongs in a resize check -- doing it per frame cost more than the drawing.
+    var cw = Math.round(w * dpr), ch = Math.round(h * dpr);
+    if (el.curve.width !== cw || el.curve.height !== ch) {
+      el.curve.width = cw; el.curve.height = ch;
+    }
+    cc.setTransform(dpr, 0, 0, dpr, 0, 0);
+    cc.clearRect(0, 0, w, h);
+    if (!S.curve) return;
 
-    var padL = 56, padR = 16, padT = 30, padB = 34;
-    var pts = state.curve.pts;
-    var maxX = pts[pts.length - 1].x * 1.04;
-    var maxY = state.eng.breakForce * 1.14;
+    var padL = 46, padR = 14, padT = 16, padB = 24, i;
+    var pts = S.curve.pts;
+    var maxX = pts[pts.length - 1].x * 1.05, maxY = S.eng.breakForce * 1.18;
     var X = function (v) { return padL + (v / maxX) * (w - padL - padR); };
     var Y = function (v) { return h - padB - (v / maxY) * (h - padT - padB); };
 
-    var inkC = css("--ink"), mutedC = css("--muted"), lineC = css("--line-2"), accentC = css("--accent"), steelC = css("--steel");
-
-    // grid + ticks
-    cctx.strokeStyle = lineC; cctx.lineWidth = 1;
-    cctx.font = '500 10px "IBM Plex Mono", monospace';
-    cctx.fillStyle = mutedC;
-    var i, yTicks = 4, xTicks = 5;
-    for (i = 0; i <= yTicks; i++) {
-      var yv = maxY * i / yTicks, py = Y(yv);
-      cctx.beginPath(); cctx.moveTo(padL, py); cctx.lineTo(w - padR, py); cctx.stroke();
-      cctx.textAlign = "right"; cctx.textBaseline = "middle";
-      cctx.fillText(fmt(yv, yv < 10 ? 1 : 0), padL - 7, py);
+    cc.font = '500 9.5px "IBM Plex Mono", monospace';
+    cc.strokeStyle = css("--line-2"); cc.lineWidth = 1; cc.fillStyle = css("--muted");
+    for (i = 0; i <= 3; i++) {
+      var yv = maxY * i / 3, py = Y(yv);
+      cc.beginPath(); cc.moveTo(padL, py); cc.lineTo(w - padR, py); cc.stroke();
+      cc.textAlign = "right"; cc.textBaseline = "middle";
+      cc.fillText(fmt(yv, 0), padL - 6, py);
     }
-    for (i = 0; i <= xTicks; i++) {
-      var xv = maxX * i / xTicks, px = X(xv);
-      cctx.textAlign = "center"; cctx.textBaseline = "top";
-      cctx.fillText(fmt(xv, xv < 10 ? 1 : 0), px, h - padB + 7);
+    for (i = 0; i <= 4; i++) {
+      var xv = maxX * i / 4;
+      cc.textAlign = "center"; cc.textBaseline = "top";
+      cc.fillText(fmt(xv, xv < 10 ? 1 : 0), X(xv), h - padB + 6);
     }
-    cctx.textAlign = "left"; cctx.textBaseline = "top";
-    cctx.fillText("LOAD  kN", padL - 48, 8);
-    cctx.textAlign = "right";
-    cctx.fillText("EXTENSION  mm", w - padR, h - 13);
+    cc.textAlign = "left"; cc.textBaseline = "top";
+    cc.fillText("kN", 6, 6);
+    cc.textAlign = "right";
+    cc.fillText("mm", w - padR, h - 11);
 
-    // axes
-    cctx.strokeStyle = mutedC; cctx.beginPath();
-    cctx.moveTo(padL, padT); cctx.lineTo(padL, h - padB); cctx.lineTo(w - padR, h - padB); cctx.stroke();
+    cc.strokeStyle = css("--muted"); cc.beginPath();
+    cc.moveTo(padL, padT); cc.lineTo(padL, h - padB); cc.lineTo(w - padR, h - padB); cc.stroke();
 
-    // traced curve
     var last = Math.max(1, Math.floor(pts.length * progress));
-    cctx.strokeStyle = accentC; cctx.lineWidth = 2.2; cctx.lineJoin = "round";
-    cctx.beginPath();
+    cc.strokeStyle = css("--accent"); cc.lineWidth = 2; cc.lineJoin = "round";
+    cc.beginPath();
     for (i = 0; i < last; i++) {
-      var pt = pts[i];
-      if (i === 0) cctx.moveTo(X(pt.x), Y(pt.y)); else cctx.lineTo(X(pt.x), Y(pt.y));
+      var p = pts[i];
+      if (i === 0) cc.moveTo(X(p.x), Y(p.y)); else cc.lineTo(X(p.x), Y(p.y));
     }
-    cctx.stroke();
+    cc.stroke();
 
-    // landmark markers, only once the trace has reached them
-    function marker(strain, force, label, colour) {
+    function mark(strain, force, label, colour) {
       if (pts[last - 1].strain < strain - 1e-9) return;
-      var px = X(strain * state.gauge), py = Y(force);
-      cctx.fillStyle = colour;
-      cctx.beginPath(); cctx.arc(px, py, 4, 0, Math.PI * 2); cctx.fill();
-      cctx.font = '600 10px "IBM Plex Mono", monospace';
-      cctx.textAlign = "left"; cctx.textBaseline = "bottom";
-      var tx = Math.min(px + 7, w - padR - 78);
-      cctx.fillText(label, tx, py - 6);
+      var px = X(strain * GAUGE), py = Y(force);
+      cc.fillStyle = colour;
+      cc.beginPath(); cc.arc(px, py, 3.4, 0, Math.PI * 2); cc.fill();
+      cc.font = '600 9.5px "IBM Plex Mono", monospace';
+      cc.textAlign = "left"; cc.textBaseline = "bottom";
+      cc.fillText(label, Math.min(px + 6, w - padR - 42), py - 5);
     }
-    marker(state.curve.epsYield, state.eng.yieldForce, "YIELD " + fmt(state.eng.yieldForce, 0) + " kN", steelC);
-    marker(state.curve.epsUts, state.eng.breakForce, "MAX " + fmt(state.eng.breakForce, 0) + " kN", accentC);
+    mark(S.curve.epsYield, S.eng.yieldForce, "YIELD", css("--steel"));
+    mark(S.curve.epsUts, S.eng.breakForce, "MAX", css("--accent"));
     if (progress >= 0.999) {
       var pe = pts[pts.length - 1];
-      cctx.fillStyle = inkC;
-      cctx.beginPath(); cctx.arc(X(pe.x), Y(pe.y), 3.5, 0, Math.PI * 2); cctx.fill();
-      cctx.font = '600 10px "IBM Plex Mono", monospace';
-      cctx.textAlign = "right"; cctx.textBaseline = "top";
-      cctx.fillText("FRACTURE", X(pe.x) - 6, Y(pe.y) + 6);
+      cc.fillStyle = css("--ink");
+      cc.beginPath(); cc.arc(X(pe.x), Y(pe.y), 3.2, 0, Math.PI * 2); cc.fill();
+      cc.font = '600 9.5px "IBM Plex Mono", monospace';
+      cc.textAlign = "right"; cc.textBaseline = "top";
+      cc.fillText("BREAK", X(pe.x) - 5, Y(pe.y) + 5);
     }
   }
 
-  /* ------------------------------------------------------------------ *
-   * 3D specimen
-   * ------------------------------------------------------------------ */
-  var renderer, scene, camera, barA, barB, gripL, gripR, matSteel;
-  var GAUGE_HALF = 1.15, END_LEN = 0.62;
+  /* ---------- 3D specimen, freely orbited ---------- */
+  var renderer, scene, camera, barA, barB, gripL, gripR;
+  var GH = 1.15, ENDL = 0.62;
+  var orbit = { az: 0.42, pol: 1.16, dist: 5.5 };
 
   function initThree() {
     renderer = new THREE.WebGLRenderer({ canvas: el.viewport, antialias: true, alpha: true });
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5));
     scene = new THREE.Scene();
-    camera = new THREE.PerspectiveCamera(32, 2, 0.1, 100);
-    camera.position.set(0.15, 1.35, 5.4);
-    camera.lookAt(0, 0, 0);
+    camera = new THREE.PerspectiveCamera(30, 2, 0.1, 100);
 
-    scene.add(new THREE.HemisphereLight(0xdfe8f2, 0x2b3238, 0.85));
+    scene.add(new THREE.HemisphereLight(0xdfe8f2, 0x2b3238, 0.9));
     var key = new THREE.DirectionalLight(0xffffff, 0.95); key.position.set(3, 5, 4); scene.add(key);
-    var rim = new THREE.DirectionalLight(0xffc9a0, 0.5); rim.position.set(-4, 1.5, -3); scene.add(rim);
+    var rim = new THREE.DirectionalLight(0xffc9a0, 0.45); rim.position.set(-4, 1.5, -3); scene.add(rim);
 
-    matSteel = new THREE.MeshStandardMaterial({ color: 0x9aa6b0, metalness: 0.85, roughness: 0.34 });
-    var matGrip = new THREE.MeshStandardMaterial({ color: 0x4a545c, metalness: 0.6, roughness: 0.62 });
+    var steel = new THREE.MeshStandardMaterial({ color: 0x9aa6b0, metalness: 0.85, roughness: 0.34 });
+    var grip = new THREE.MeshStandardMaterial({ color: 0x4a545c, metalness: 0.55, roughness: 0.65 });
 
-    barA = new THREE.Mesh(new THREE.BufferGeometry(), matSteel);
-    barB = new THREE.Mesh(new THREE.BufferGeometry(), matSteel);
-    barA.rotation.z = -Math.PI / 2; barB.rotation.z = -Math.PI / 2;
-    scene.add(barA); scene.add(barB);
+    barA = new THREE.Mesh(makeTube(), steel);
+    barB = new THREE.Mesh(makeTube(), steel);
+    scene.add(barA, barB);
 
-    var jaw = new THREE.BoxGeometry(0.34, 0.86, 0.86);
-    gripL = new THREE.Mesh(jaw, matGrip); gripR = new THREE.Mesh(jaw, matGrip);
-    scene.add(gripL); scene.add(gripR);
+    var jaw = new THREE.BoxGeometry(0.3, 0.8, 0.8);
+    gripL = new THREE.Mesh(jaw, grip); gripR = new THREE.Mesh(jaw, grip);
+    scene.add(gripL, gripR);
 
-    resizeThree();
-    window.addEventListener("resize", function () { resizeThree(); drawCurve(lastProgress); });
+    bindOrbit();
+    updateCamera();
+    resize();
+    window.addEventListener("resize", function () { resize(); drawCurve(prog); });
   }
 
-  function resizeThree() {
+  function updateCamera() {
+    var sp = Math.sin(orbit.pol), cp = Math.cos(orbit.pol);
+    camera.position.set(orbit.dist * sp * Math.sin(orbit.az), orbit.dist * cp, orbit.dist * sp * Math.cos(orbit.az));
+    camera.lookAt(0, 0, 0);
+  }
+
+  /* Hand-rolled orbit: a few lines, and avoids depending on a controls file
+     that the CDN allowlist may not carry. */
+  function bindOrbit() {
+    var dragging = false, lx = 0, ly = 0;
+    el.viewport.addEventListener("pointerdown", function (e) {
+      dragging = true; lx = e.clientX; ly = e.clientY;
+      el.viewport.setPointerCapture(e.pointerId);
+    });
+    el.viewport.addEventListener("pointermove", function (e) {
+      if (!dragging) return;
+      orbit.az -= (e.clientX - lx) * 0.008;
+      orbit.pol = Math.max(0.12, Math.min(Math.PI - 0.12, orbit.pol - (e.clientY - ly) * 0.008));
+      lx = e.clientX; ly = e.clientY;
+      updateCamera(); render();
+    });
+    ["pointerup", "pointercancel", "pointerleave"].forEach(function (ev) {
+      el.viewport.addEventListener(ev, function () { dragging = false; });
+    });
+    el.viewport.addEventListener("wheel", function (e) {
+      e.preventDefault();
+      orbit.dist = Math.max(2.6, Math.min(11, orbit.dist + Math.sign(e.deltaY) * 0.42));
+      updateCamera(); render();
+    }, { passive: false });
+  }
+
+  function resize() {
     var w = el.viewport.clientWidth, h = el.viewport.clientHeight;
     if (!w || !h) return;
     renderer.setSize(w, h, false);
-    camera.aspect = w / h;
-    camera.updateProjectionMatrix();
-    renderFrame();
+    camera.aspect = w / h; camera.updateProjectionMatrix();
+    render();
   }
 
-  /* Radius profile of one half of the specimen, from the centre outwards.
-     Volume is conserved in the gauge length, and necking is a local
-     gaussian reduction that only develops past maximum load. */
-  function halfProfile(sign, strain, neck, gaugeHalf, r0) {
-    var rUniform = r0 / Math.sqrt(1 + Math.max(strain, 0));
-    var rGrip = r0 * 1.85;
-    var pts = [], N = 46, i;
-    for (i = 0; i <= N; i++) {
-      var t = i / N;
-      var y, r;
-      if (t <= 0.72) {                       // gauge section
-        y = t / 0.72 * gaugeHalf;
-        var nk = neck > 0 ? (1 - neck * Math.exp(-Math.pow(y / (gaugeHalf * 0.30), 2))) : 1;
-        r = rUniform * nk;
-      } else if (t <= 0.86) {                // shoulder fillet
-        var u = (t - 0.72) / 0.14;
-        y = gaugeHalf + u * END_LEN * 0.45;
-        r = rUniform + (rGrip - rUniform) * (u * u * (3 - 2 * u));
-      } else {                               // grip section
-        var v = (t - 0.86) / 0.14;
-        y = gaugeHalf + END_LEN * 0.45 + v * END_LEN * 0.55;
-        r = rGrip;
+  /* The specimen is allocated ONCE as a ring grid and deformed in place each
+     frame. Rebuilding a LatheGeometry per frame allocated a quarter of a million
+     vertices per second and re-uploaded them to the GPU, which on integrated
+     graphics dropped the animation to a crawl -- the bar appeared to hang with
+     the button stuck disabled. Writing into an existing buffer costs nothing. */
+  var RINGS = 40, SEG = 28;
+
+  function makeTube() {
+    var g = new THREE.BufferGeometry();
+    var n = RINGS * SEG + 2;                       // + one centre per end cap
+    g.setAttribute("position", new THREE.BufferAttribute(new Float32Array(n * 3), 3));
+    var idx = [], i, j;
+    for (i = 0; i < RINGS - 1; i++) {
+      for (j = 0; j < SEG; j++) {
+        var a = i * SEG + j, b = i * SEG + (j + 1) % SEG;
+        var c = (i + 1) * SEG + j, d = (i + 1) * SEG + (j + 1) % SEG;
+        idx.push(a, c, b, b, c, d);
       }
-      pts.push(new THREE.Vector2(Math.max(r, 0.004), sign * y));
     }
-    if (sign < 0) pts.reverse();
-    return pts;
+    var capNear = RINGS * SEG, capFar = capNear + 1;
+    for (j = 0; j < SEG; j++) {
+      idx.push(capNear, j, (j + 1) % SEG);
+      idx.push(capFar, (RINGS - 1) * SEG + (j + 1) % SEG, (RINGS - 1) * SEG + j);
+    }
+    g.setIndex(idx);
+    return g;
   }
 
-  function buildSpecimen(strain, neck, split) {
-    var r0 = Math.min(0.62, Math.max(0.055, (state.dia / state.gauge) * GAUGE_HALF));
-    var gaugeHalf = GAUGE_HALF * (1 + strain);
+  /* Radius and axial position at parameter t along one half of the bar. */
+  function profileAt(t, strain, neck, gaugeHalf, r0) {
+    var rU = r0 / Math.sqrt(1 + Math.max(strain, 0)), rG = r0 * 1.85, y, r;
+    if (t <= 0.72) {
+      y = t / 0.72 * gaugeHalf;
+      r = rU * (neck > 0 ? 1 - neck * Math.exp(-Math.pow(y / (gaugeHalf * 0.30), 2)) : 1);
+    } else if (t <= 0.86) {
+      var u = (t - 0.72) / 0.14;
+      y = gaugeHalf + u * ENDL * 0.45;
+      r = rU + (rG - rU) * (u * u * (3 - 2 * u));
+    } else {
+      var v = (t - 0.86) / 0.14;
+      y = gaugeHalf + ENDL * 0.45 + v * ENDL * 0.55;
+      r = rG;
+    }
+    return { y: y, r: Math.max(r, 0.004) };
+  }
 
-    var a = halfProfile(1, strain, neck, gaugeHalf, r0);
-    var b = halfProfile(-1, strain, neck, gaugeHalf, r0);
-    if (barA.geometry) barA.geometry.dispose();
-    if (barB.geometry) barB.geometry.dispose();
-    barA.geometry = new THREE.LatheGeometry(a, 44);
-    barB.geometry = new THREE.LatheGeometry(b, 44);
+  var COS = [], SIN = [];
+  for (var _s = 0; _s < SEG; _s++) {
+    COS.push(Math.cos(_s / SEG * Math.PI * 2));
+    SIN.push(Math.sin(_s / SEG * Math.PI * 2));
+  }
 
+  function deform(mesh, sign, strain, neck, gaugeHalf, r0) {
+    var pos = mesh.geometry.attributes.position, arr = pos.array, i, j, k = 0;
+    var first = null, last = null;
+    for (i = 0; i < RINGS; i++) {
+      var pr = profileAt(i / (RINGS - 1), strain, neck, gaugeHalf, r0);
+      if (i === 0) first = pr;
+      if (i === RINGS - 1) last = pr;
+      var x = sign * pr.y;
+      for (j = 0; j < SEG; j++) {
+        arr[k++] = x; arr[k++] = pr.r * COS[j]; arr[k++] = pr.r * SIN[j];
+      }
+    }
+    arr[k++] = sign * first.y; arr[k++] = 0; arr[k++] = 0;   // cap at the break
+    arr[k++] = sign * last.y; arr[k++] = 0; arr[k++] = 0;    // cap at the grip
+    pos.needsUpdate = true;
+    mesh.geometry.computeVertexNormals();
+    mesh.geometry.computeBoundingSphere();
+  }
+
+  function build(strain, neck, split) {
+    if (!barA) return;          // no 3D view; the numbers and curve still work
+    var r0 = (DIA / GAUGE) * GH;
+    var gh = GH * (1 + strain);
+    deform(barA, 1, strain, neck, gh, r0);
+    deform(barB, -1, strain, neck, gh, r0);
     barA.position.x = split; barB.position.x = -split;
-    var end = gaugeHalf + END_LEN + split;
-    gripR.position.x = end + 0.17; gripL.position.x = -end - 0.17;
+    var end = gh + ENDL + split;
+    gripR.position.x = end + 0.15; gripL.position.x = -end - 0.15;
   }
 
-  function renderFrame() { if (renderer) renderer.render(scene, camera); }
+  function render() { if (renderer) renderer.render(scene, camera); }
 
-  function resetSpecimen() {
-    buildSpecimen(0, 0, 0);
+  function rest() {
+    build(0, 0, 0);
     el["live-force"].innerHTML = unit(0, 1, "kN");
     el["live-ext"].innerHTML = unit(0, 2, "mm");
-    el["live-phase"].textContent = "At rest";
-    renderFrame();
+    el.phase.textContent = "At rest";
+    render();
   }
 
-  /* ---- the pull ---- */
-  var lastProgress = 1, animating = false;
+  /* ---------- the pull ---------- */
+  var prog = 1, busy = false;
 
-  function runTest() {
-    if (animating || !state.curve) return;
-    var reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    if (reduce) {
-      buildSpecimen(state.curve.epsTotal * 0.55, 0.62, 0.22);
-      el["live-force"].innerHTML = unit(0, 1, "kN");
-      el["live-ext"].innerHTML = unit(state.eng.extBreak, 2, "mm");
-      el["live-phase"].textContent = "Fractured";
-      drawCurve(1); renderFrame();
+  function run() {
+    if (busy || !S.curve) return;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      build(S.curve.epsTotal * 2.4 * 0.96, 0.9, 0.3);
+      el.phase.textContent = "Fractured";
+      drawCurve(1); render(); showResults();
       return;
     }
-
-    animating = true;
-    el.run.disabled = true;
-    var pts = state.curve.pts, total = 2600, t0 = performance.now();
+    busy = true; el.run.disabled = true;
+    hideResults();
+    var pts = S.curve.pts, dur = 2600, t0 = null;
 
     function frame(now) {
-      var k = Math.min(1, (now - t0) / total);
-      var idx = Math.min(pts.length - 1, Math.floor(k * (pts.length - 1)));
-      var pt = pts[idx];
-      var strain = pt.strain;
-
-      // Screen strain is compressed: a 20% real stretch is visually slight,
-      // so the bar is exaggerated to keep the deformation legible.
-      var shown = strain * 2.4;
-      var neck = strain > state.curve.epsUts
-        ? Math.min(0.72, (strain - state.curve.epsUts) / Math.max(state.curve.epsTotal - state.curve.epsUts, 1e-6) * 0.72)
+      // Seed the clock from the FIRST frame, not from performance.now() at click
+      // time. The rAF timestamp is the start of the current frame's rendering
+      // cycle, which is allowed to precede the moment the callback was
+      // registered -- and does whenever the click lands inside a frame already
+      // in flight. Mixing the two clocks made k negative, so pts[-1] was
+      // undefined and the first frame threw: about one click in four, and every
+      // click on a slow machine.
+      if (t0 === null) t0 = now;
+      // Watchdog: on very slow hardware, finish rather than crawl. A disabled
+      // button and a bar that never breaks is the worst failure this page has.
+      if (now - t0 > 12000) { snap(); return; }
+      var k = Math.max(0, Math.min(1, (now - t0) / dur));
+      var p = pts[Math.min(pts.length - 1, Math.floor(k * (pts.length - 1)))];
+      var neck = p.strain > S.curve.epsUts
+        ? Math.min(0.72, (p.strain - S.curve.epsUts) / Math.max(S.curve.epsTotal - S.curve.epsUts, 1e-6) * 0.72)
         : 0;
-
-      buildSpecimen(shown, neck, 0);
-      el["live-force"].innerHTML = unit(pt.y, pt.y < 100 ? 1 : 0, "kN");
-      el["live-ext"].innerHTML = unit(pt.x, 2, "mm");
-      el["live-phase"].textContent =
-        strain <= state.curve.epsYield ? "Elastic"
-        : strain <= state.curve.epsUts ? "Yielding"
-        : "Necking";
-      drawCurve(k); renderFrame();
-      lastProgress = k;
-
-      if (k < 1) { requestAnimationFrame(frame); return; }
-      fracture();
+      build(p.strain * 2.4, neck, 0);       // stretch exaggerated to stay legible
+      el["live-force"].innerHTML = unit(p.y, p.y < 100 ? 1 : 0, "kN");
+      el["live-ext"].innerHTML = unit(p.x, 2, "mm");
+      el.phase.textContent = p.strain <= S.curve.epsYield ? "Elastic"
+        : p.strain <= S.curve.epsUts ? "Yielding" : "Necking";
+      drawCurve(k); render(); prog = k;
+      if (k < 1) requestAnimationFrame(safeFrame); else snap();
     }
-    requestAnimationFrame(frame);
+    function safeFrame(now) {
+      try { frame(now); }
+      catch (err) {
+        // Restore a coherent state, not just the button. hideResults() has
+        // already run, so re-enabling alone would leave the panel greyed out
+        // for good and the page looking like the click did nothing.
+        showResults();
+        el.phase.textContent = "Fractured";
+        finish();
+        throw err;
+      }
+    }
+    requestAnimationFrame(safeFrame);
   }
 
-  function fracture() {
-    var t0 = performance.now(), dur = 620;
-    var shown = state.curve.epsTotal * 2.4;
-    el["live-phase"].textContent = "Fractured";
+  function finish() { busy = false; el.run.disabled = false; }
+
+  function snap() {
+    var t0 = null, dur = 560, shown = S.curve.epsTotal * 2.4;
+    el.phase.textContent = "Fractured";
     el["live-force"].innerHTML = unit(0, 1, "kN");
+    // The reading is taken at the break: that is when the numbers arrive.
+    showResults();
+    el.results.classList.add("flash");
+    setTimeout(function () { el.results.classList.remove("flash"); }, 520);
     function frame(now) {
-      var k = Math.min(1, (now - t0) / dur);
-      var ease = 1 - Math.pow(1 - k, 3);
-      // slight elastic recoil as the load drops to zero
-      buildSpecimen(shown * (1 - 0.035 * ease), 0.72 + 0.2 * ease, 0.30 * ease);
-      renderFrame();
-      if (k < 1) requestAnimationFrame(frame);
-      else { animating = false; el.run.disabled = false; }
+      if (t0 === null) t0 = now;                       // same clock, same reason
+      var k = Math.max(0, Math.min(1, (now - t0) / dur)), e = 1 - Math.pow(1 - k, 3);
+      build(shown * (1 - 0.035 * e), 0.72 + 0.2 * e, 0.3 * e);
+      render();
+      if (k < 1) requestAnimationFrame(safeFrame); else finish();
     }
-    requestAnimationFrame(frame);
+    // This was the one unprotected rAF in the file: a throw here could strand
+    // the control with no way back.
+    function safeFrame(now) {
+      try { frame(now); } catch (err) { finish(); throw err; }
+    }
+    requestAnimationFrame(safeFrame);
   }
 
-  /* ---- wiring ---- */
-  MODEL.elements.forEach(function (name) {
-    el["el-" + name].addEventListener("input", function () {
-      state.preset = null; readInputs(); recompute(); resetSpecimen();
+  /* ---------- wiring ---------- */
+  MODEL.elements.forEach(function (n) {
+    el["el-" + n].addEventListener("input", function () {
+      S.preset = null; read(); recompute(); showResults(); rest();
     });
   });
-  [el.dia, el.gauge].forEach(function (input) {
-    input.addEventListener("input", function () { readInputs(); recompute(); resetSpecimen(); });
-  });
-  el.run.addEventListener("click", runTest);
-
+  el.run.addEventListener("click", run);
   var mq = window.matchMedia("(prefers-color-scheme: dark)");
-  (mq.addEventListener ? mq.addEventListener.bind(mq, "change") : mq.addListener.bind(mq))(function () { drawCurve(lastProgress); });
+  (mq.addEventListener ? mq.addEventListener.bind(mq, "change") : mq.addListener.bind(mq))(function () { drawCurve(prog); });
 
-  initThree();
-  applyPreset(PRESETS[1]);   // opens in a realistic working state: 4140, ø10 × 50
-  resetSpecimen();
+  // Seed the numbers BEFORE the 3D view. The chemistry prediction needs neither
+  // three.js nor WebGL, so losing the entire page because a CDN is blocked, a
+  // GPU is blacklisted or hardware acceleration is off would be gratuitous --
+  // and it fails silently, looking like a page that loaded correctly and does
+  // nothing. With this order the readout, the guard and the curve all survive.
+  apply(PRESETS[1]);
+  try {
+    initThree();
+    rest();
+  } catch (err) {
+    el.viewport.hidden = true;
+    el.phase.textContent = "3D view unavailable";
+    var hint = document.querySelector(".hint");
+    if (hint) hint.hidden = true;
+    if (window.console) console.warn("3D view disabled:", err && err.message);
+  }
 })();
 </script>

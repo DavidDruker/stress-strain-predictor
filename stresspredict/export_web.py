@@ -14,6 +14,7 @@ a silent, input-dependent disagreement -- the worst kind.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import sys
 from datetime import UTC, datetime
@@ -63,6 +64,30 @@ def _export_trees(hgb) -> list[dict]:
             "m": [int(v) for v in nodes["missing_go_to_left"]],
         })
     return out
+
+
+def fingerprint(pipelines: dict) -> str:
+    """A content hash of the fitted trees themselves.
+
+    This exists so drift between the shipped browser model and the shipped
+    Python model can be caught by a test that needs NEITHER the dataset nor the
+    joblib -- both of which are gitignored, which is why the row-level parity
+    test silently skips in CI and cannot be the only guard. Comparing timestamps
+    would not do: a legitimate retrain changes those while the model is
+    identical, and a tuned/untuned swap can leave them looking plausible.
+    """
+    h = hashlib.sha256()
+    for name in sorted(pipelines):
+        inner = pipelines[name].named_steps["regressor"].regressor_
+        hgb = inner.named_steps["model"]
+        h.update(name.encode())
+        h.update(np.asarray(hgb._baseline_prediction, dtype=float).tobytes())
+        for stage in hgb._predictors:
+            nodes = stage[0].nodes
+            for field in ("feature_idx", "num_threshold", "left", "right",
+                          "value", "is_leaf", "missing_go_to_left"):
+                h.update(np.ascontiguousarray(nodes[field]).tobytes())
+    return h.hexdigest()
 
 
 def export(artifact_path: Path = DEFAULT_ARTIFACT) -> dict:
@@ -115,6 +140,8 @@ def export(artifact_path: Path = DEFAULT_ARTIFACT) -> dict:
         "element_ranges": art["element_ranges"],
         "landmark_requires": param.landmark_requires,
         "training_data": sidecar.get("training_data", {}),
+        "model_fingerprint": fingerprint(art["pipelines"]),
+        "tuned": sidecar.get("tuned"),
         "n_train_rows": sidecar.get("n_train_rows"),
         "n_train_grades": sidecar.get("n_train_grades"),
         "limitations": sidecar.get("limitations", ""),

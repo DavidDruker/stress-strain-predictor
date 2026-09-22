@@ -24,7 +24,17 @@ import numpy as np
 import pandas as pd
 import sklearn
 
-from . import __version__, evaluate, features, metrics, models, schema, splits, targets
+from . import (
+    __version__,
+    evaluate,
+    export_web,
+    features,
+    metrics,
+    models,
+    schema,
+    splits,
+    targets,
+)
 
 ARTIFACT_DIR = Path("artifacts")
 
@@ -93,6 +103,10 @@ def main(argv: list[str] | None = None) -> int:
 
     sidecar = {
         "created_utc": datetime.now(UTC).isoformat(timespec="seconds"),
+        # Content hash of the fitted trees. The web export records the same
+        # value, so a test can prove the browser model and this model are the
+        # same fit using only committed files.
+        "model_fingerprint": export_web.fingerprint(result["pipelines"]),
         "stresspredict_version": __version__,
         "model": args.model,
         "parameterisation": args.parameterisation,

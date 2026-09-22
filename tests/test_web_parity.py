@@ -48,6 +48,41 @@ def exported() -> dict:
     return json.loads(MODEL_JSON.read_text(encoding="utf-8"))
 
 
+def test_shipped_browser_model_is_the_shipped_python_model(exported):
+    """The one drift guard that runs in CI.
+
+    The row-level parity tests below need the dataset and the fitted joblib, both
+    of which are gitignored -- so in CI they SKIP, and a green suite there proves
+    nothing about agreement with Python. This test compares two committed files
+    and therefore always runs.
+
+    It caught a real incident: a `train --fast` invocation, run only to time how
+    long training takes, silently overwrote the tuned artifact with an untuned
+    one. The sidecar and the browser export then described different fits while
+    every other test stayed green.
+
+    A content fingerprint rather than a timestamp, because a legitimate retrain
+    changes timestamps while the model is identical, and a tuned/untuned swap can
+    leave the timestamps looking perfectly plausible.
+    """
+    sidecar_path = Path("artifacts/hist_gbm_ratio_comp.json")
+    _require(sidecar_path.exists(), "committed sidecar missing")
+    sidecar = json.loads(sidecar_path.read_text(encoding="utf-8"))
+
+    assert "model_fingerprint" in sidecar, "sidecar predates the fingerprint; re-run train"
+    assert "model_fingerprint" in exported, "web export predates the fingerprint; re-run export_web"
+    assert exported["model_fingerprint"] == sidecar["model_fingerprint"], (
+        "the browser model and the Python model are different fits. "
+        f"sidecar={sidecar['model_fingerprint'][:16]} (tuned={sidecar.get('tuned')}), "
+        f"web={exported['model_fingerprint'][:16]} (tuned={exported.get('tuned')}). "
+        "Re-run `python -m stresspredict.train` then `python -m stresspredict.export_web`."
+    )
+    assert exported.get("tuned") is True, "the shipped browser model was not tuned"
+    assert exported["training_data"]["raw_sha256"] == sidecar["training_data"]["raw_sha256"], (
+        "the two models were fitted on different source data"
+    )
+
+
 def test_export_matches_the_python_feature_layout(exported):
     """A silent feature-order change would corrupt every browser prediction."""
     assert exported["elements"] == list(schema.ELEMENTS)
