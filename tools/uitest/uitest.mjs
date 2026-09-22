@@ -526,6 +526,50 @@ async function checkDegradesWithoutThree(browser, url) {
   await page.close();
 }
 
+async function checkStageGeometry(browser, url) {
+  /* Two failures that look identical from the outside and both did happen:
+     the canvas silently staying at its intrinsic 300x150 (it is a REPLACED
+     element, so width:auto ignores inset boxes), and the readout bar being drawn
+     on top of the specimen. The old check only asked whether the backing store
+     was non-zero, which 300x150 satisfies. */
+  for (const [w, h] of [[1280, 900], [1920, 1080], [1366, 768]]) {
+    const page = await newPage(browser, { width: w, height: h });
+    await load(page, url);
+    const m = await page.evaluate(() => {
+      const c = document.getElementById("viewport");
+      if (!c) return null;
+      const vp = c.getBoundingClientRect();
+      const over = [];
+      document.querySelectorAll(".hud, .side").forEach((n) => {
+        const r = n.getBoundingClientRect();
+        if (!r.width || !r.height) return;
+        const ox = Math.max(0, Math.min(vp.right, r.right) - Math.max(vp.left, r.left));
+        const oy = Math.max(0, Math.min(vp.bottom, r.bottom) - Math.max(vp.top, r.top));
+        if (ox > 1 && oy > 1) over.push(`${n.className.split(" ")[0]} ${Math.round(ox)}x${Math.round(oy)}px`);
+      });
+      return { cssW: Math.round(vp.width), cssH: Math.round(vp.height), over };
+    });
+    if (!m) { fail("critical", "stage", "no #viewport", { w, h }, "The canvas is missing."); continue; }
+
+    if (m.cssW <= 320 && m.cssH <= 160) {
+      fail("high", "stage", `the canvas is stuck at its intrinsic size (${m.cssW}x${m.cssH}) at ${w}x${h}`, m,
+        "A canvas is a replaced element: width/height:auto resolve to 300x150 and ignore "
+        + "top/right/bottom/left. Give a wrapper the fixed insets and let the canvas fill it "
+        + "with width:100%;height:100%.");
+    } else if (m.cssW < w * 0.4 || m.cssH < h * 0.4) {
+      fail("medium", "stage", `the stage is only ${m.cssW}x${m.cssH} in a ${w}x${h} window`, m,
+        "The simulation is meant to be the page; check the wrapper's geometry.");
+    } else if (m.over.length) {
+      fail("high", "stage", `chrome is drawn over the specimen at ${w}x${h}: ${m.over.join(", ")}`, m,
+        "Nothing may overlap the stage. Inset the canvas above the readout bar rather than "
+        + "floating panels across it.");
+    } else {
+      ok("stage", `${m.cssW}x${m.cssH} at ${w}x${h}, nothing overlapping`);
+    }
+    await page.close();
+  }
+}
+
 async function checkSidebarFits(browser, url) {
   /* The sidebar is meant to hold every control without scrolling. It is easy to
      regress by one added row, and the failure is quiet: the last control simply
@@ -694,6 +738,7 @@ async function main() {
     await checkResponsive(page, url);
     await checkThemes(page, url);
     await checkReducedMotion(page, url);
+    await checkStageGeometry(browser, url);
     await checkSidebarFits(browser, url);
     await checkLoadMode(browser, url);
     await checkFirstClickOnSlowCpu(browser, url);
