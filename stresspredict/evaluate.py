@@ -210,37 +210,79 @@ def evaluate(df: pd.DataFrame, comp_long: pd.DataFrame, protocol_name: str,
             "landmarks": {},
         }
 
-        # Assemble landmark predictions from component OOF predictions.
+        # Assemble landmark predictions from component out-of-fold predictions.
+        #
+        # Each landmark is scored on every row it can actually be produced for,
+        # using ONLY the components it needs. Requiring all three components to be
+        # present would score UTS on the 659-row fully-observed core instead of all
+        # 1,359 rows -- discarding exactly the extra coverage the ratio
+        # parameterisation exists to provide, and biasing the subset toward the
+        # easier specification-minimum rows. That silently flatters UTS by ~12%.
         oof_frames = {n: c["oof"] for n, c in comps.items() if len(c["oof"])}
-        if len(oof_frames) == len(param.components):
-            joined = pd.DataFrame(oof_frames).dropna()
-            if len(joined):
-                landmarks = param.decode({n: joined[n].to_numpy() for n in joined.columns})
-                truth = df.set_index("sample_id").loc[joined.index]
+        if oof_frames:
+            wide = pd.DataFrame(oof_frames)          # outer join; NaN where absent
+            truth_all = df.set_index("sample_id")
+            oof_rows: dict = {}
+
+            for lm in schema.TARGETS:
+                required = param.landmark_requires[lm]
+                if not set(required) <= set(wide.columns):
+                    continue
+                rows = wide.dropna(subset=list(required))
+                if rows.empty:
+                    continue
+                # Components this landmark does not need are passed as NaN: the
+                # assembly returns NaN for the other landmarks, which we ignore.
+                quantities = {
+                    c.name: (rows[c.name].to_numpy() if c.name in required
+                             else np.full(len(rows), np.nan))
+                    for c in param.components
+                }
+                yp = np.asarray(param.decode(quantities)[lm], dtype=float)
+                truth = truth_all.loc[rows.index]
+                yt = truth[lm].to_numpy(dtype=float)
+                in_core = np.array([sid in core_ids for sid in rows.index])
+                kind = truth["measurement_kind"].to_numpy()
+
+                entry["landmarks"][lm] = {
+                    "unit": schema.TARGET_UNITS[lm],
+                    "full": metrics.score(yt, yp),
+                    "common_core": metrics.score(yt[in_core], yp[in_core]),
+                    # The only comparison that is like-for-like against the noise
+                    # floor, which is itself measured per measurement kind.
+                    "by_measurement_kind": {
+                        k: metrics.score(yt[kind == k], yp[kind == k])
+                        for k in np.unique(kind)
+                    },
+                }
+                oof_rows[lm] = pd.DataFrame({
+                    "sample_id": rows.index, "model": model_name,
+                    "protocol": protocol.name,
+                    "steel_family": truth["family_group"].to_numpy(),
+                    "measurement_kind": kind,
+                    "landmark": lm, "y_true": yt, "y_pred": yp,
+                })
+
+            # The invariant is checked wherever BOTH strengths are producible.
+            both = param.landmark_requires["yield_strength"]
+            rows = wide.dropna(subset=[c for c in both if c in wide.columns])
+            if len(rows) and set(both) <= set(wide.columns):
+                landmarks = param.decode({
+                    c.name: (rows[c.name].to_numpy() if c.name in wide.columns
+                             else np.full(len(rows), np.nan))
+                    for c in param.components
+                })
                 holds, violations = targets.check_invariant(landmarks)
                 entry["invariant_uts_gt_ys"] = {
                     "holds": bool(holds),
                     "violations": int(violations),
-                    "n_checked": int(len(joined)),
+                    "n_checked": int(len(rows)),
                 }
-                in_core = np.array([sid in core_ids for sid in joined.index])
-                oof_rows = {"sample_id": joined.index, "model": model_name,
-                            "protocol": protocol.name,
-                            "steel_family": truth["family_group"].to_numpy(),
-                            "measurement_kind": truth["measurement_kind"].to_numpy()}
-                for lm in schema.TARGETS:
-                    yt = truth[lm].to_numpy(dtype=float)
-                    yp = np.asarray(landmarks[lm], dtype=float)
-                    entry["landmarks"][lm] = {
-                        "unit": schema.TARGET_UNITS[lm],
-                        "full": metrics.score(yt, yp),
-                        "common_core": metrics.score(yt[in_core], yp[in_core]),
-                    }
-                    oof_rows[f"{lm}__true"] = yt
-                    oof_rows[f"{lm}__pred"] = yp
-                # Kept out of the JSON; written alongside it as a CSV so the
-                # parity plots never have to re-run the cross-validation.
-                entry["_oof"] = pd.DataFrame(oof_rows)
+
+            # Kept out of the JSON; written alongside it as a CSV so the parity
+            # plots never have to re-run the cross-validation.
+            if oof_rows:
+                entry["_oof"] = pd.concat(oof_rows.values(), ignore_index=True)
 
         entry["fit_seconds"] = round(time.perf_counter() - t0, 2)
         out["models"][model_name] = entry

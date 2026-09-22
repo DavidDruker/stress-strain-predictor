@@ -16,7 +16,113 @@ $ python -m stresspredict.predict --composition "C=0.40,Mn=0.80,Cr=1.00,Mo=0.20,
   all elements within training range
 ```
 
-<!--RESULTS-->
+## Results
+
+SteelBench v1.0 open release, 1,359 rows after cleaning, 562 grades, 17 families.
+Composition-only. Hyper-parameters tuned inside every outer fold. Full tables in
+[`reports/results.md`](reports/results.md).
+
+### Headline: grade-grouped 5-fold CV
+
+Each landmark is scored on every row it can be produced for, which is why the row
+counts differ.
+
+| Model | YS MAE (n=984) | UTS MAE (n=1,359) | Elongation MAE (n=661) |
+|---|---|---|---|
+| `dummy` (median) | 164.2 MPa | 190.6 MPa | 8.61 pp |
+| `ridge` | 145.8 | 149.9 | 6.08 |
+| `random_forest` | **99.2** | **93.5** | **4.77** |
+| `extra_trees` | 100.3 | 93.7 | 4.82 |
+| `hist_gbm` | 101.9 | 98.1 | 4.86 |
+
+Every model beats the median baseline on every target under the grouped protocol.
+
+### The point of the project: model error against the physical floor
+
+The floor is the within-composition spread on **measured** rows — the error a
+perfect composition-only model would still make, because the rows inside each
+group differ by heat treatment the features cannot see. Model and floor are both
+scored on measured rows, because comparing an all-rows MAE against a
+measured-only floor would appear to beat a physical limit.
+
+| Target | Measured noise floor | Shipped model, measured rows | |
+|---|---|---|---|
+| Yield strength | 107.2 – 191.5 MPa | 144.6 MPa | **inside the band** |
+| Elongation | 3.3 – 6.1 pp | 5.94 pp | **inside the band** |
+| Tensile strength | 63.9 – 103.3 MPa | 108.9 MPa | just above — real headroom |
+
+Yield strength and elongation are **at the information-theoretic ceiling of
+composition-only input**. The residual is not model error to be engineered away;
+it is processing history, and no model with these inputs crosses it. Tensile
+strength is the one target where a better model still has room.
+
+Pooling specification minima into that floor would report 61.2 MPa for yield
+strength instead of 107.2 — and the model would appear to beat physics. It does
+not; spec-minimum rows are simply near-deterministic per grade (the same model
+scores 87.6 MPa on them and 144.6 MPa on measurements).
+
+### What grade leakage is worth
+
+| Model | UTS: random K-fold → grade-grouped | Inflation |
+|---|---|---|
+| `dummy` | 184.1 → 190.6 | 1.04× |
+| `ridge` | 141.1 → 149.9 | 1.06× |
+| `random_forest` | 76.2 → 93.5 | 1.23× |
+| `extra_trees` | 78.9 → 93.7 | 1.19× |
+| `hist_gbm` | 74.8 → 98.1 | **1.31×** |
+
+The dummy row is the control: ~0% inflation proves the two fold structures are
+otherwise comparable, so the gap is the leak and not an artefact of splitting.
+The leak is ~0 for models that cannot memorise and 15–31% for those that can,
+largest for the highest-capacity model. **Reporting the random-K-fold number as
+the headline would have overstated UTS accuracy by 31%.**
+
+### Extrapolation, where it actually hurts
+
+Pooled means hide this, so the worst fold is reported:
+
+| Protocol | Question | UTS MAE | Worst fold |
+|---|---|---|---|
+| `lofo_family` | unseen alloy family | 142.2 | **232.6** (`stainless_steel`) |
+| `loso_source` | unseen laboratory | 171.1 | **183.3** (`emk_spec_verified`) |
+
+Best family is `carbon_low` at 48.9 MPa — a 4.8× spread across families. Any
+claim about this model generalising to a new alloy class should quote 232.6, not
+142.2. Five families with 1–3 rows are too small to hold out; they stay in
+training and are listed in the report.
+
+### Why HistGradientBoosting ships, and why the ladder stops there
+
+On the headline protocol the three tree models are **statistically
+indistinguishable**: random forest leads HistGBM on UTS by 4.6 MPa against a
+fold-to-fold standard deviation of 25.7 MPa (SEM 11.5) — about 0.4 SEM. Calling
+random forest the winner would be reading noise.
+
+The tiebreak is robustness under source shift, where the separation is real:
+HistGBM 171.1 MPa vs random forest 198.2 and extra trees 268.7, worst fold 183.3
+vs 215.4 vs 295.2. HistGBM ships on that basis, not on the headline number.
+
+The same standard deviation licenses stopping the ladder: a 4.6 MPa difference
+between candidate models sits well inside a 25.7 MPa fold-to-fold spread, so
+adding XGBoost could not produce a difference this evaluation could detect.
+
+Ridge is worth one line as a cautionary result: it is competitive under
+grade-grouped CV but collapses to **1,483 MPa** on the held-out `emk_spec_verified`
+source fold, extrapolating linearly in log space outside the training hull.
+Trees' inability to extrapolate — usually listed as a weakness — is what makes
+them survive that shift.
+
+### Correctness
+
+* **UTS > YS held on 19,650 out-of-fold predictions across all four protocols —
+  0 violations.** Guaranteed by the parameterisation, verified on cross-validated
+  predictions rather than only on the final fit.
+* **Ridge coefficient signs pass**: carbon +0.105 for yield strength, +0.094 for
+  tensile strength, −0.118 for elongation. A wiring test, not a score.
+* **The data manifest balances**: 1,360 rows in, 1,359 out, 1 dropped
+  (`yield_strength >= tensile_strength`), 15 values nulled, every rule documented.
+
+
 
 ## What makes this different from the usual version of this project
 

@@ -20,3 +20,12 @@ artifacts/
 reports/.log_*
 reports/.done_*
 reports/.err_*
+
+# Per-row out-of-fold predictions (~7 MB) and the per-protocol bundles that the
+# merged report is built from. All regenerable with `evaluate` + `report`; only
+# the merged bundle and the rendered results.md are committed.
+reports/oof_*.csv
+reports/eval_*_random_kfold.json
+reports/eval_*_gkf_grade.json
+reports/eval_*_lofo_family.json
+reports/eval_*_loso_source.json

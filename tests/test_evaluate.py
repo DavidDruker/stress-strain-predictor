@@ -128,6 +128,44 @@ def test_evaluate_produces_landmarks_and_upholds_the_invariant(synthetic_grouped
     assert result["protocol_is_leaky"] is False
 
 
+def test_each_landmark_is_scored_on_every_row_it_can_be_produced_for(synthetic_grouped):
+    """Landmarks must not be scored on the intersection of all three components.
+
+    UTS needs only the UTS component, so it must be scored on every row with a
+    measured UTS -- not on the smaller set where elongation happens to be
+    reported too. Scoring on the intersection throws away exactly the coverage
+    the ratio parameterisation exists to provide, and biases the subset toward
+    whichever rows report all three, which are not a random sample.
+    """
+    df, comp_long = synthetic_grouped
+    result = evaluate.evaluate(df, comp_long, "gkf_grade", ("ridge",), "ratio",
+                               "comp", tune=False, seed=1)
+    lm = result["models"]["ridge"]["landmarks"]
+
+    n_uts = int(df["tensile_strength"].notna().sum())
+    n_ys = int((df["tensile_strength"].notna() & df["yield_strength"].notna()).sum())
+    n_el = int(df["elongation"].notna().sum())
+
+    assert lm["tensile_strength"]["full"]["n"] == n_uts
+    assert lm["yield_strength"]["full"]["n"] == n_ys
+    assert lm["elongation"]["full"]["n"] == n_el
+    assert n_uts > n_el, "fixture must have sparser elongation for this test to bite"
+    assert lm["tensile_strength"]["full"]["n"] > lm["elongation"]["full"]["n"]
+    assert lm["tensile_strength"]["full"]["n"] > result["n_common_core_rows"]
+
+
+def test_landmarks_are_split_by_measurement_kind(synthetic_grouped):
+    """The only comparison that is like-for-like against the stratified floor."""
+    df, comp_long = synthetic_grouped
+    result = evaluate.evaluate(df, comp_long, "gkf_grade", ("ridge",), "ratio",
+                               "comp", tune=False, seed=1)
+    by_kind = result["models"]["ridge"]["landmarks"]["tensile_strength"]["by_measurement_kind"]
+    assert set(by_kind) == {"measured", "spec_minimum"}
+    assert sum(v["n"] for v in by_kind.values()) == (
+        result["models"]["ridge"]["landmarks"]["tensile_strength"]["full"]["n"]
+    )
+
+
 def test_common_core_is_the_same_rows_for_every_landmark(synthetic_grouped):
     """The like-for-like row set must not drift between targets."""
     df, comp_long = synthetic_grouped

@@ -111,6 +111,46 @@ def render(bundle: dict, manifest: dict) -> str:
             out.append("Families too small to hold out (kept in training): "
                        + ", ".join(f"`{k}` ({v} rows)" for k, v in excluded.items()) + "\n")
 
+    # --- like-for-like against the floor --------------------------------
+    headline = splits.HEADLINE_PROTOCOL
+    if headline in bundle["protocols"]:
+        out.append("## Model error vs the floor, on matching rows\n")
+        out.append("The floor is measured on **measured rows only**, so the model has to be")
+        out.append("scored on measured rows only too. An all-rows model MAE compared against a")
+        out.append("measured-only floor appears to beat a physical limit -- which is a sign of a")
+        out.append("mismatched comparison, not of a good model.\n")
+        out.append("| Target | Floor (measured rows) | Best model, measured rows "
+                   "| Best model, spec minima |")
+        out.append("|---|---|---|---|")
+        for target in schema.TARGETS:
+            fl = manifest["noise_floor"]["targets"][target]["measured_only"]
+            unit = schema.TARGET_UNITS[target]
+            best_measured, best_spec = None, None
+            for model in model_names:
+                if model == "dummy":
+                    continue
+                try:
+                    by_kind = (bundle["protocols"][headline]["models"][model]
+                               ["landmarks"][target]["by_measurement_kind"])
+                except (KeyError, TypeError):
+                    continue
+                measured = by_kind.get("measured", {}).get("mae")
+                spec = by_kind.get("spec_minimum", {}).get("mae")
+                if measured is not None and (best_measured is None or measured < best_measured[0]):
+                    best_measured = (measured, model)
+                if spec is not None and (best_spec is None or spec < best_spec[0]):
+                    best_spec = (spec, model)
+            if best_measured is None:
+                continue
+            floor_txt = (
+                f"{_fmt(fl.get('mae_floor_insample'))} .. {_fmt(fl.get('mae_floor_loo'))} {unit}"
+                if fl.get("n_groups") else "not measurable"
+            )
+            spec_txt = f"{_fmt(best_spec[0])} (`{best_spec[1]}`)" if best_spec else "--"
+            out.append(f"| {target} | {floor_txt} | "
+                       f"{_fmt(best_measured[0])} (`{best_measured[1]}`) | {spec_txt} |")
+        out.append("")
+
     # --- the leak ------------------------------------------------------
     if "random_kfold" in bundle["protocols"] and "gkf_grade" in bundle["protocols"]:
         out.append("## What grade leakage is worth\n")

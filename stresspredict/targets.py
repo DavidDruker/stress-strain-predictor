@@ -80,10 +80,16 @@ class Parameterisation:
     """A set of components plus the rule for assembling landmarks from them."""
 
     def __init__(self, name: str, components: tuple[Component, ...],
-                 assemble: Callable[[dict[str, np.ndarray]], dict[str, np.ndarray]]):
+                 assemble: Callable[[dict[str, np.ndarray]], dict[str, np.ndarray]],
+                 landmark_requires: dict[str, tuple[str, ...]]):
         self.name = name
         self.components = components
         self._assemble = assemble
+        # Which components each landmark actually needs. Evaluation scores every
+        # landmark on the rows it can genuinely be produced for, rather than on
+        # the intersection of all three components -- under RATIO that is the
+        # difference between scoring UTS on 1,359 rows and on 659.
+        self.landmark_requires = landmark_requires
 
     def __getitem__(self, name: str) -> Component:
         for c in self.components:
@@ -123,6 +129,11 @@ RATIO = Parameterisation(
                   lambda df: df["elongation"], np.log, np.exp),
     ),
     _assemble_ratio,
+    landmark_requires={
+        "tensile_strength": ("tensile_strength",),
+        "yield_strength": ("tensile_strength", "yield_ratio"),
+        "elongation": ("elongation",),
+    },
 )
 
 GAP = Parameterisation(
@@ -136,6 +147,11 @@ GAP = Parameterisation(
                   lambda df: df["elongation"], np.log, np.exp),
     ),
     _assemble_gap,
+    landmark_requires={
+        "yield_strength": ("yield_strength",),
+        "tensile_strength": ("yield_strength", "strength_gap"),
+        "elongation": ("elongation",),
+    },
 )
 
 PARAMETERISATIONS = {"ratio": RATIO, "gap": GAP}

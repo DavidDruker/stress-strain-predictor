@@ -39,18 +39,32 @@ def _style(ax) -> None:
 
 
 def parity(oof: pd.DataFrame, protocol: str, model: str, out: Path) -> Path:
-    """Predicted vs measured for all three landmarks under one protocol."""
+    """Predicted vs measured for all three landmarks under one protocol.
+
+    Each panel shows every row that landmark could be produced for, so the panel
+    counts differ -- that is the honest picture, not an inconsistency.
+    """
     sub = oof[(oof["protocol"] == protocol) & (oof["model"] == model)]
+    if sub.empty:
+        # Never save an empty figure. A blank chart with real axes and a real
+        # filename is worse than no chart: it looks like a result.
+        return Path()
     fig, axes = plt.subplots(1, 3, figsize=(13.5, 4.4))
 
     for ax, target in zip(axes, schema.TARGETS, strict=True):
-        yt = sub[f"{target}__true"].to_numpy(dtype=float)
-        yp = sub[f"{target}__pred"].to_numpy(dtype=float)
+        rows = sub[sub["landmark"] == target]
+        yt = rows["y_true"].to_numpy(dtype=float)
+        yp = rows["y_pred"].to_numpy(dtype=float)
         m = np.isfinite(yt) & np.isfinite(yp)
         yt, yp = yt[m], yp[m]
 
-        ax.scatter(yt, yp, s=11, alpha=0.45, color=PALETTE.get(model, "#4c78a8"),
-                   edgecolors="none")
+        measured = (rows["measurement_kind"].to_numpy() == "measured")[m]
+        for mask, color, label in ((measured, "#e45756", "measured"),
+                                   (~measured, "#9aa0a6", "spec minimum")):
+            if mask.any():
+                ax.scatter(yt[mask], yp[mask], s=12, alpha=0.5, color=color,
+                           edgecolors="none", label=label)
+
         lo = float(min(yt.min(), yp.min())) if len(yt) else 0.0
         hi = float(max(yt.max(), yp.max())) if len(yt) else 1.0
         pad = 0.04 * (hi - lo)
@@ -62,6 +76,7 @@ def parity(oof: pd.DataFrame, protocol: str, model: str, out: Path) -> Path:
         mae = float(np.mean(np.abs(yp - yt))) if len(yt) else float("nan")
         ax.set_title(f"{target}   MAE {mae:.1f}   n={len(yt)}", fontsize=10)
         _style(ax)
+    axes[0].legend(frameon=False, fontsize=8, loc="upper left")
 
     fig.suptitle(f"Out-of-fold parity -- {model}, {protocol}", fontsize=12)
     fig.tight_layout()
@@ -79,6 +94,8 @@ def leak_plot(bundle: dict, target: str, out: Path) -> Path:
     mean less.
     """
     protocols = [p for p in ("random_kfold", "gkf_grade") if p in bundle["protocols"]]
+    if len(protocols) < 2:
+        return Path()   # nothing to contrast; the plot's whole point is the gap
     models = list(bundle["protocols"][protocols[0]]["models"])
 
     fig, ax = plt.subplots(figsize=(9, 4.6))
@@ -117,6 +134,8 @@ def floor_plot(bundle: dict, manifest: dict, target: str, out: Path) -> Path:
     differ by processing that the features cannot see.
     """
     protocol = splits.HEADLINE_PROTOCOL
+    if protocol not in bundle["protocols"]:
+        return Path()
     models = list(bundle["protocols"][protocol]["models"])
     vals = []
     for model in models:
@@ -189,14 +208,20 @@ def lofo_plot(bundle: dict, model: str, target: str, out: Path) -> Path:
 def banana_plot(oof: pd.DataFrame, protocol: str, model: str, out: Path) -> Path:
     """Strength-ductility space: the standard axis engineers actually read."""
     sub = oof[(oof["protocol"] == protocol) & (oof["model"] == model)]
-    m = (sub["tensile_strength__true"].notna() & sub["elongation__true"].notna()
-         & sub["elongation__pred"].notna())
-    sub = sub[m]
+    if sub.empty:
+        return Path()
+    wide = sub.pivot_table(index="sample_id", columns="landmark",
+                           values=["y_true", "y_pred"], aggfunc="first")
+    need = [("y_true", "tensile_strength"), ("y_true", "elongation"),
+            ("y_pred", "tensile_strength"), ("y_pred", "elongation")]
+    if any(c not in wide.columns for c in need):
+        return Path()
+    wide = wide.dropna(subset=need)
 
     fig, ax = plt.subplots(figsize=(7.4, 5.2))
-    ax.scatter(sub["elongation__true"], sub["tensile_strength__true"],
+    ax.scatter(wide[("y_true", "elongation")], wide[("y_true", "tensile_strength")],
                s=22, alpha=0.5, label="measured", color="#4c78a8", edgecolors="none")
-    ax.scatter(sub["elongation__pred"], sub["tensile_strength__pred"],
+    ax.scatter(wide[("y_pred", "elongation")], wide[("y_pred", "tensile_strength")],
                s=22, alpha=0.5, label="predicted", color="#e45756", marker="^",
                edgecolors="none")
     ax.set_xlabel("Elongation (%)")
@@ -229,20 +254,22 @@ def main(argv: list[str] | None = None) -> int:
     oof = pd.read_csv(args.oof)
 
     args.out_dir.mkdir(parents=True, exist_ok=True)
-    written = [
-        parity(oof, splits.HEADLINE_PROTOCOL, args.model, args.out_dir),
-        parity(oof, "random_kfold", args.model, args.out_dir),
-        banana_plot(oof, splits.HEADLINE_PROTOCOL, args.model, args.out_dir),
-    ]
+    present = [p for p in (splits.HEADLINE_PROTOCOL, "random_kfold")
+               if p in bundle["protocols"]]
+    written = [parity(oof, p, args.model, args.out_dir) for p in present]
+    written.append(banana_plot(oof, splits.HEADLINE_PROTOCOL, args.model, args.out_dir))
     for target in schema.TARGETS:
         written.append(leak_plot(bundle, target, args.out_dir))
         written.append(floor_plot(bundle, manifest, target, args.out_dir))
     written.append(lofo_plot(bundle, args.model, "tensile_strength", args.out_dir))
     written.append(lofo_plot(bundle, args.model, "yield_strength", args.out_dir))
 
-    for p in written:
-        if p and str(p):
-            print(f"wrote {p}")
+    drawn = [p for p in written if p and str(p) != "."]
+    for p in drawn:
+        print(f"wrote {p}")
+    skipped = len(written) - len(drawn)
+    if skipped:
+        print(f"({skipped} figure(s) skipped -- the required protocol or rows were absent)")
     return 0
 
 
