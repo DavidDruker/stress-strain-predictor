@@ -429,12 +429,25 @@
     var n = Math.max(0.02, Math.min(0.30, Math.log(p.uts / p.ys) / 2 + 0.05));
     var epsUts = Math.min(Math.max(n, epsYield * 2), Math.max(epsTotal * 0.75, epsYield * 1.001));
     epsUts = Math.max(epsYield * 1.001, Math.min(epsUts, epsTotal * 0.999));
-    var K = p.uts / Math.pow(Math.max(epsUts, 1e-9), n);
-    var pts = [], N = 240;
-    for (var i = 0; i < N; i++) {
-      var e = (i / (N - 1)) * epsTotal, s;
+    /* Hardening runs from the yield strength up to the UTS. A bare Hollomon
+       K*e^n anchored only at the UTS starts far BELOW yield -- 460 MPa after a
+       680 MPa yield for 4140 -- which drew a drop the moment the bar yielded.
+       This form is continuous at yield, rises monotonically, and has zero slope
+       at the UTS, which is what maximum load means on an engineering curve. */
+    var strains = [], N = 240, i;
+    for (i = 0; i < N; i++) strains.push((i / (N - 1)) * epsTotal);
+    // Sample the corners exactly, or the line cuts across them between samples.
+    strains.push(epsYield, epsUts);
+    strains.sort(function (a, b) { return a - b; });
+    var pts = [];
+    for (i = 0; i < strains.length; i++) {
+      var e = strains[i], s;
+      if (i > 0 && e === strains[i - 1]) continue;
       if (e <= epsYield) s = E_MODULUS * e;
-      else if (e <= epsUts) s = Math.min(K * Math.pow(e, n), p.uts);
+      else if (e <= epsUts) {
+        var x = (e - epsYield) / (epsUts - epsYield);
+        s = p.ys + (p.uts - p.ys) * (1 - Math.pow(1 - x, 3));
+      }
       else { var t = (e - epsUts) / Math.max(epsTotal - epsUts, 1e-9); s = p.uts * (1 - 0.35 * t * t); }
       pts.push({ x: e * eng.gauge, y: s * eng.area / 1000, strain: e });
     }

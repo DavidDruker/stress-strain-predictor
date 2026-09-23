@@ -169,9 +169,10 @@ export const YOUNGS_MODULUS_MPA = 205000;
  *
  * IMPORTANT, and stated in the UI as well: this shape is NOT predicted. The
  * model outputs three landmarks; no open dataset found reports strain at UTS or
- * a hardening exponent, so the path between them is a Hollomon power law closed
- * with the Considere condition, constrained to pass through the points the model
- * did predict. It is a model-based reconstruction, not a learned curve.
+ * a hardening exponent, so strain at UTS is placed with a Hollomon exponent and
+ * the Considere condition, and the path between yield and UTS is a smooth rise
+ * through the points the model did predict. It is a model-based
+ * reconstruction, not a learned curve.
  */
 export function reconstructCurve(landmarks, nPoints = 220) {
   const { yield_strength: ys, tensile_strength: uts, elongation } = landmarks;
@@ -181,7 +182,6 @@ export function reconstructCurve(landmarks, nPoints = 220) {
   // Considere: necking begins where the hardening exponent equals true strain.
   const n = Math.max(0.02, Math.min(0.30, Math.log(uts / ys) / 2 + 0.05));
   const eps_uts = Math.min(Math.max(n, eps_yield * 2), eps_total * 0.75);
-  const K = uts / Math.pow(Math.max(eps_uts, 1e-6), n);
 
   const points = [];
   for (let i = 0; i < nPoints; i += 1) {
@@ -190,7 +190,10 @@ export function reconstructCurve(landmarks, nPoints = 220) {
     if (e <= eps_yield) {
       s = YOUNGS_MODULUS_MPA * e;                       // elastic
     } else if (e <= eps_uts) {
-      s = Math.min(K * Math.pow(e, n), uts);            // work hardening
+      // Work hardening from yield up to UTS, zero slope at UTS (maximum load).
+      // A bare K*e^n anchored at UTS alone starts well below yield.
+      const x = (e - eps_yield) / (eps_uts - eps_yield);
+      s = ys + (uts - ys) * (1 - Math.pow(1 - x, 3));
     } else {
       // Post-UTS softening: engineering stress falls as the neck develops.
       const t = (e - eps_uts) / Math.max(eps_total - eps_uts, 1e-9);
