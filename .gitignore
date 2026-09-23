@@ -12,6 +12,7 @@ dist/
 data/raw/
 data/processed/
 data/processed_merged/
+data/processed_merged_all/
 # data/external/ IS committed (small, vendored with provenance) - see data/README.md
 
 # The fitted model is reproducible from the committed code, the pinned

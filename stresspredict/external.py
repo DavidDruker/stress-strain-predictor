@@ -50,6 +50,15 @@ def load(path: Path = RAW) -> tuple[pd.DataFrame, pd.DataFrame]:
     return X, y
 
 
+def load_guard_composition(path: Path = RAW) -> pd.DataFrame:
+    """Held-out compositions including Co and Ti, for training-side leakage guards."""
+    with gzip.open(path, "rt", encoding="utf-8") as fh:
+        raw = json.load(fh)
+    df = pd.DataFrame(raw["data"], columns=raw["columns"])
+    cols = [c for c in df.columns if len(c) <= 2]
+    return df[cols].rename(columns=str.capitalize).apply(pd.to_numeric, errors="coerce")
+
+
 def score(artifact_path: Path) -> dict:
     X, y = load()
     pred = predict.predict_batch(X, artifact_path=artifact_path)

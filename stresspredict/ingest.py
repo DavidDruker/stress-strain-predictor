@@ -41,6 +41,7 @@ class Ingested:
     raw_sha256: str
     raw_rows: int
     parts: tuple = ()           # the per-source loads behind a merged source
+    selection: tuple = ()       # source-specific row selection steps, counted
 
 
 def sha256_of(path: Path) -> str:
@@ -231,7 +232,67 @@ def load_merged() -> Ingested:
     AISI datasheet row, reached through SteelBench's Kaggle tier) are removed by
     `clean`'s cross-source duplicate rule, keeping the SteelBench copy.
     """
-    parts = [load_steelbench(), load_mendeley()]
+    return _combine([load_steelbench(), load_mendeley()])
+
+
+LITERATURE_URL = "https://ndownloader.figshare.com/files/68056564"
+
+
+def load_literature(path: Path | None = None) -> Ingested:
+    """Load the literature-derived steel dataset (figshare 10.6084/m9.figshare.32755830 v2).
+
+    About 41k records extracted automatically from ~2,900 papers. The row
+    selection in `literature.select` keeps only room-temperature tensile tests of
+    a wt% chemistry with carbon reported, and drops any row near a held-out
+    steel. Each paper becomes one grade group: its samples usually share one
+    chemistry and differ only in processing, so splitting a paper across folds
+    would leak.
+    """
+    from . import external, literature  # external imports this module
+
+    path = Path(path) if path is not None else RAW_DIR / "steel_literature_figshare_32755830.csv"
+    if not path.exists():
+        raise FileNotFoundError(
+            f"{path} not found. Download it first:\n  curl -L -o {path} {LITERATURE_URL}\n"
+            f"See data/README.md for the DOI, licence and expected checksum."
+        )
+    raw = pd.read_csv(path, low_memory=False)
+    recs = literature.records(raw)
+    kept, steps = literature.select(recs, external.load_guard_composition())
+    source_id = "literature_figshare_32755830"
+
+    out = pd.DataFrame(index=kept.index)
+    out["sample_id"] = source_id + ":" + kept.index.astype(str)
+    out["source_id"] = source_id
+    out["grade_id"] = "paper:" + kept["article_doi_normalized"].fillna(kept.index.to_series()).astype(str)
+    out["source_label"] = "literature"
+    out["provenance"] = "literature"
+    out["steel_family"] = "unknown"
+    out["measurement_kind"] = "measured"
+    for col in schema.PROCESS_NUMERIC:
+        out[col] = np.nan
+    out["quench_medium"] = pd.Series(pd.NA, index=kept.index, dtype="string")
+    for col in schema.TARGETS:
+        out[col] = pd.to_numeric(kept[col], errors="coerce")
+    out["elongation_standard"] = "unknown"
+    for col in ("reduction_area", "impact_J_avg", "hardness"):
+        out[col] = np.nan
+    out = out.reset_index(drop=True)
+
+    comp_dense = kept[list(schema.ELEMENTS)].reset_index(drop=True)
+    comp_dense.insert(0, "sample_id", out["sample_id"].values)
+    return Ingested(
+        samples=out,
+        composition=_to_long(comp_dense, schema.ELEMENTS),
+        source_id=source_id,
+        raw_path=path,
+        raw_sha256=sha256_of(path),
+        raw_rows=int(recs.shape[0]),
+        selection=tuple(steps),
+    )
+
+
+def _combine(parts: list[Ingested]) -> Ingested:
     digest = hashlib.sha256("".join(p.raw_sha256 for p in parts).encode()).hexdigest()
     return Ingested(
         samples=pd.concat([p.samples for p in parts], ignore_index=True),
@@ -244,7 +305,13 @@ def load_merged() -> Ingested:
     )
 
 
-LOADERS = {"steelbench": load_steelbench, "mendeley": load_mendeley, "merged": load_merged}
+def load_merged_all() -> Ingested:
+    """SteelBench + Mendeley + the literature set, labels intact."""
+    return _combine([load_steelbench(), load_mendeley(), load_literature()])
+
+
+LOADERS = {"steelbench": load_steelbench, "mendeley": load_mendeley, "literature": load_literature,
+           "merged": load_merged, "merged_all": load_merged_all}
 
 
 def run(source: str, out_dir: Path = PROCESSED_DIR) -> dict:
@@ -270,7 +337,8 @@ def run(source: str, out_dir: Path = PROCESSED_DIR) -> dict:
         "raw_rows": ing.raw_rows,
         "raw_files": [
             {"source_id": p.source_id, "file": str(p.raw_path).replace("\\", "/"),
-             "sha256": p.raw_sha256, "rows": p.raw_rows}
+             "sha256": p.raw_sha256, "rows": p.raw_rows,
+             **({"selection": list(p.selection)} if p.selection else {})}
             for p in (ing.parts or (ing,))
         ],
         "rows_out": int(len(cleaned.samples)),

@@ -1,0 +1,80 @@
+{
+ "literature_figshare_32755830": {
+  "yield_strength": {
+   "n": 1797,
+   "mae": 213.474,
+   "rmse": 301.25,
+   "r2": 0.196,
+   "median_ae": 152.324,
+   "mape": 35.944
+  },
+  "tensile_strength": {
+   "n": 1963,
+   "mae": 214.365,
+   "rmse": 313.716,
+   "r2": 0.28,
+   "median_ae": 131.787,
+   "mape": 24.553
+  },
+  "elongation": {
+   "n": 1598,
+   "mae": 12.728,
+   "rmse": 17.217,
+   "r2": 0.127,
+   "median_ae": 9.034,
+   "mape": 171.292
+  }
+ },
+ "mendeley_jmwb9ddd43": {
+  "yield_strength": {
+   "n": 2916,
+   "mae": 164.153,
+   "rmse": 215.262,
+   "r2": 0.479,
+   "median_ae": 139.489,
+   "mape": 27.675
+  },
+  "tensile_strength": {
+   "n": 2924,
+   "mae": 154.627,
+   "rmse": 218.464,
+   "r2": 0.518,
+   "median_ae": 103.973,
+   "mape": 17.696
+  },
+  "elongation": {
+   "n": 2924,
+   "mae": 4.259,
+   "rmse": 5.429,
+   "r2": 0.081,
+   "median_ae": 3.553,
+   "mape": 23.201
+  }
+ },
+ "steelbench_v1_open": {
+  "yield_strength": {
+   "n": 984,
+   "mae": 108.532,
+   "rmse": 175.377,
+   "r2": 0.288,
+   "median_ae": 69.972,
+   "mape": 26.62
+  },
+  "tensile_strength": {
+   "n": 1359,
+   "mae": 102.244,
+   "rmse": 168.262,
+   "r2": 0.475,
+   "median_ae": 66.469,
+   "mape": 14.256
+  },
+  "elongation": {
+   "n": 661,
+   "mae": 5.327,
+   "rmse": 7.425,
+   "r2": 0.55,
+   "median_ae": 3.939,
+   "mape": 31.435
+  }
+ }
+}

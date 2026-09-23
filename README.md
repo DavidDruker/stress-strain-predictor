@@ -100,6 +100,19 @@ MPa for UTS and from 3.97 to 2.81 pp for elongation. It lost on the held-out set
 only because that set has no processing information to give it. Shipping it would
 also mean new inputs on the test bench.
 
+**A third source was tried and rejected.** A CC BY literature dataset of about
+41k records, extracted automatically from about 2,900 papers (figshare
+32755830), was cut to 1,963 usable rows: room-temperature tensile tests, a wt%
+chemistry with carbon, and no hydrogen, corrosion or irradiation context.
+Separately, 30 rows within 0.5 wt% of a held-out steel were dropped as a
+leakage guard. Adding it made grouped-CV strength error slightly better on
+SteelBench (UTS 112 -> 102 MPa) but held-out error worse (UTS 409 -> 546 MPa,
+mean ratio 1.137), so under the rule fixed beforehand it was not promoted.
+`ingest --source merged_all` reproduces it, and the record is in
+[`reports/promotion_rule_2.md`](reports/promotion_rule_2.md). This second
+decision also means the held-out set has now been used twice, so a small
+future win on it would be weaker evidence.
+
 ## Results: the evaluation methodology, on SteelBench
 
 Everything from here to *Figures* evaluates the **SteelBench-only** model on the
@@ -383,7 +396,7 @@ counted.
 stresspredict/     the package (schema, units, ingest, clean, features, targets,
                    grouping, splits, models, metrics, noise_floor, evaluate,
                    train, predict, plots, report, export_web)
-tests/             114 tests; integration tests skip cleanly without the dataset
+tests/             127 tests; integration tests skip cleanly without the dataset
 web/               the test bench: app.html, the exported model, and
                    build_site.sh, which wraps it for GitHub Pages
 tools/uitest/      drives the test bench in a real browser (puppeteer)

@@ -124,6 +124,42 @@ Several properties of this file shape how it is loaded:
   SteelBench grade ids, so grade-grouped splits cannot separate the two copies.
   Only 984 of the 3,232 rows share no grade, triple or composition with SteelBench.
 
+## Candidate source, not in the shipped model -- literature-derived steels
+
+| | |
+|---|---|
+| Title | *A Curated Literature-Derived Dataset for Composition-Processing-Property Relationships in Steels* (Weiren Wang) |
+| DOI | [10.6084/m9.figshare.32755830.v2](https://doi.org/10.6084/m9.figshare.32755830.v2) |
+| Licence | CC BY 4.0 |
+| File | `revised_property_level_records.csv`, saved as `data/raw/steel_literature_figshare_32755830.csv` |
+| SHA-256 | `ecca2f7b8ae25c53b1f39d90c52f5bbfa2eb227601f0e204f5a311117414c02f` |
+
+```bash
+curl -L -o data/raw/steel_literature_figshare_32755830.csv https://ndownloader.figshare.com/files/68056564
+python -m stresspredict.ingest --source merged_all --out-dir data/processed_merged_all
+```
+
+The records were extracted automatically from papers. Every record passes the
+dataset's own quality flags, and its authors recommend filtering further.
+`stresspredict/literature.py` does that, and each step is counted in the
+manifest:
+
+| Rule | Records remaining |
+|---|---|
+| Starting records | 33,114 |
+| Composition in wt% or mass% | 20,677 |
+| Carbon reported | 17,888 |
+| Plausible steel composition | 17,430 |
+| Test stated as room temperature | 4,298 |
+| Plain tensile test, no hydrogen / corrosion / irradiation context | 2,261 |
+| No other temperature in the test text | 2,203 |
+| Not within 0.5 wt% of a held-out steel | 2,173 |
+
+After `clean`, 1,963 rows remain. Composition ranges are read as their midpoint;
+"<x", "Nil" and "Bal." are read as not reported. Each paper is one grade group.
+Adding this source made the held-out score worse, so the shipped model does not
+use it; see [`reports/promotion_rule_2.md`](../reports/promotion_rule_2.md).
+
 ## Held-out promotion set -- matminer `steel_strength`
 
 | | |
