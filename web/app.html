@@ -31,7 +31,6 @@
     --f-mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
     --bar: 326px;
     --hud: 154px;
-    --lift: 48px; /* stage cropped from the bottom and the readout bar raised by the same amount */
   }
   @media (prefers-color-scheme: dark) {
     :root:not([data-theme="light"]) {
@@ -76,7 +75,7 @@
      sits, falling off toward the corners, with a soft inset shadow standing in
      for where the walls meet. */
   .stagewrap {
-    position: fixed; top: 0; right: 0; bottom: calc(var(--hud) + var(--lift)); left: var(--bar);
+    position: fixed; top: 0; right: 0; bottom: var(--hud); left: var(--bar);
     z-index: 0; overflow: hidden;
     background:
       linear-gradient(var(--grid) 1px, transparent 1px),
@@ -133,7 +132,7 @@
   /* A solid bar BELOW the stage, not a card floating over it. The specimen is
      the point of the page; covering it with the numbers defeats the layout. */
   .hud {
-    position: fixed; left: var(--bar); right: 0; bottom: var(--lift); height: var(--hud); z-index: 2;
+    position: fixed; left: var(--bar); right: 0; bottom: 0; height: var(--hud); z-index: 2;
     background: var(--surface); border-top: 2px solid var(--ink);
     padding-bottom: env(safe-area-inset-bottom, 0px);
     box-shadow: 0 -12px 34px rgba(19, 28, 34, .13);
