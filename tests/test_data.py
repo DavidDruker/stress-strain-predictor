@@ -111,6 +111,26 @@ def test_duplicate_sample_ids_are_dropped_once():
     assert len(cleaned.samples) == 3
 
 
+def test_cross_source_duplicate_keeps_the_earlier_sources_copy():
+    """One datasheet row reached through two publishers must count once."""
+    df = _frame(source_id=["sb", "sb", "me", "me"],
+                tensile_strength=[500.0, 600.0, 500.0, 900.0],
+                yield_strength=[300.0, 400.0, 300.0, 600.0],
+                elongation=[20.0, 25.0, 20.0, 10.0])
+    cleaned, report = clean.clean(df, _comp())
+    assert report["drops_by_rule"]["drop_cross_source_duplicate"] == 1
+    assert list(cleaned.samples["sample_id"]) == ["a", "b", "d"]
+
+
+def test_repeats_within_one_source_are_not_cross_source_duplicates():
+    """Two tempers reporting the same numbers inside one source are both real rows."""
+    df = _frame(tensile_strength=[500.0, 500.0, 700.0, 800.0],
+                yield_strength=[300.0, 300.0, 500.0, 600.0],
+                elongation=[20.0, 20.0, 15.0, 10.0])
+    _, report = clean.clean(df, _comp())
+    assert "drop_cross_source_duplicate" not in report["drops_by_rule"]
+
+
 def test_out_of_range_element_cell_is_removed():
     comp = _comp()
     comp.loc[0, "wt_pct"] = 500.0

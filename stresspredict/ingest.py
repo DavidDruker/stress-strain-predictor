@@ -15,11 +15,13 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import re
 import sys
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
 
+import numpy as np
 import pandas as pd
 
 from . import __version__, clean, noise_floor, schema
@@ -38,6 +40,7 @@ class Ingested:
     raw_path: Path
     raw_sha256: str
     raw_rows: int
+    parts: tuple = ()           # the per-source loads behind a merged source
 
 
 def sha256_of(path: Path) -> str:
@@ -131,7 +134,117 @@ def load_steelbench(path: Path | None = None) -> Ingested:
     )
 
 
-LOADERS = {"steelbench": load_steelbench}
+MENDELEY_URL = ("https://data.mendeley.com/public-files/datasets/jmwb9ddd43/files/"
+                "cc944ab8-d3c8-448c-ac1d-172e8cc7e11d/file_downloaded")
+
+
+def _grade_key(name: str) -> str:
+    """'AISI 4130H Steel' -> '4130', matching SteelBench's Kaggle grade_id.
+
+    The H (hardenability-band) and E (electric-furnace) variants share a
+    chemistry with the base grade, so they are grouped with it: splitting them
+    across folds would let the same steel sit on both sides of a split.
+    """
+    m = re.search(r"AISI\s+(?:Type\s+)?E?(\d{3,4}[A-Z]?)", name, re.I)
+    if m:
+        g = m.group(1).upper()
+        return g[:-1] if g.endswith("H") and len(g) == 5 else g
+    return re.sub(r"\s+steel$", "", name.strip(), flags=re.I)
+
+
+def _first_celsius(text: pd.Series, pattern: str) -> pd.Series:
+    return pd.to_numeric(text.str.extract(pattern, flags=re.I)[0], errors="coerce")
+
+
+def load_mendeley(path: Path | None = None) -> Ingested:
+    """Load 'A database of mechanical properties of steels' (Mendeley jmwb9ddd43).
+
+    Deliberate mappings:
+
+    * A composition of 0 means "not specified" in this file -- every row lists
+      all 20 elements -- so zeros are dropped from the long table, the same state
+      a blank cell has in SteelBench. Taking them literally would tell the model
+      that thousands of carbon steels were certified free of Si and Cr.
+    * `Name` starting with ASTM -> measurement_kind "spec_minimum". Those rows
+      are specification grades/classes/thicknesses, i.e. minima, the same trap
+      as SteelBench's EMK tier.
+    * Temperatures are read from the free-text processing condition only where
+      the text is unambiguous (a C value directly attached to temper / quench);
+      everything else stays missing. Not used by the shipped composition model.
+    * Test temperature is not reported; no row names a non-ambient test, so
+      these are room-temperature datasheet values by convention.
+    """
+    path = Path(path) if path is not None else RAW_DIR / "mendeley_jmwb9ddd43.xlsx"
+    if not path.exists():
+        raise FileNotFoundError(
+            f"{path} not found. Download it first:\n  curl -L -o {path} {MENDELEY_URL}\n"
+            f"See data/README.md for the DOI, licence and expected checksum."
+        )
+
+    raw = pd.read_excel(path)
+    raw = raw.loc[:, ~raw.columns.astype(str).str.startswith("Unnamed")]
+    source_id = "mendeley_jmwb9ddd43"
+    text = raw["Processing condition"].astype(str)
+
+    out = pd.DataFrame()
+    out["sample_id"] = source_id + ":" + raw["Entry"].astype(str)
+    out["source_id"] = source_id
+    out["grade_id"] = raw["Name"].astype(str).map(_grade_key)
+    out["source_label"] = "Mendeley"
+    out["provenance"] = "mendeley"
+    out["steel_family"] = "unknown"
+    out["measurement_kind"] = np.where(
+        raw["Name"].astype(str).str.startswith("ASTM"), "spec_minimum", "measured")
+    out["austenitize_T"] = _first_celsius(
+        text, r"(?:quenched|austenitized|reheated to)(?: at| from)?\s+(\d{3,4})\s?C\b")
+    temper_after = _first_celsius(text, r"(\d{3,4})\s?C\b[^,;]*?\btemper")
+    out["temper_T"] = temper_after.fillna(
+        _first_celsius(text, r"temper(?:ed)?,?(?: at)?\s+(\d{3,4})\s?C\b"))
+    out["quench_medium"] = pd.Series(pd.NA, index=raw.index, dtype="string")
+    out["yield_strength"] = pd.to_numeric(raw["Yield strength (MPa)"], errors="coerce")
+    out["tensile_strength"] = pd.to_numeric(raw["(Ultimate) Tensile strength (MPa)"],
+                                            errors="coerce")
+    out["elongation"] = pd.to_numeric(raw["Ductility (%)"], errors="coerce")
+    out["elongation_standard"] = "unknown"
+    for col in ("reduction_area", "impact_J_avg", "hardness"):
+        out[col] = np.nan
+
+    comp_dense = raw[list(schema.ELEMENTS)].apply(pd.to_numeric, errors="coerce")
+    comp_dense = comp_dense.mask(comp_dense == 0.0)
+    comp_dense.insert(0, "sample_id", out["sample_id"].values)
+
+    return Ingested(
+        samples=out,
+        composition=_to_long(comp_dense, schema.ELEMENTS),
+        source_id=source_id,
+        raw_path=path,
+        raw_sha256=sha256_of(path),
+        raw_rows=len(raw),
+    )
+
+
+def load_merged() -> Ingested:
+    """SteelBench + Mendeley, concatenated with their labels intact.
+
+    Each row keeps its own source_id / provenance / measurement_kind, so any
+    evaluation can still be split by source. Rows that appear in both (the same
+    AISI datasheet row, reached through SteelBench's Kaggle tier) are removed by
+    `clean`'s cross-source duplicate rule, keeping the SteelBench copy.
+    """
+    parts = [load_steelbench(), load_mendeley()]
+    digest = hashlib.sha256("".join(p.raw_sha256 for p in parts).encode()).hexdigest()
+    return Ingested(
+        samples=pd.concat([p.samples for p in parts], ignore_index=True),
+        composition=pd.concat([p.composition for p in parts], ignore_index=True),
+        source_id="+".join(p.source_id for p in parts),
+        raw_path=Path(" + ".join(str(p.raw_path).replace("\\", "/") for p in parts)),
+        raw_sha256=digest,
+        raw_rows=sum(p.raw_rows for p in parts),
+        parts=tuple(parts),
+    )
+
+
+LOADERS = {"steelbench": load_steelbench, "mendeley": load_mendeley, "merged": load_merged}
 
 
 def run(source: str, out_dir: Path = PROCESSED_DIR) -> dict:
@@ -155,6 +268,11 @@ def run(source: str, out_dir: Path = PROCESSED_DIR) -> dict:
         "raw_file": str(ing.raw_path).replace("\\", "/"),
         "raw_sha256": ing.raw_sha256,
         "raw_rows": ing.raw_rows,
+        "raw_files": [
+            {"source_id": p.source_id, "file": str(p.raw_path).replace("\\", "/"),
+             "sha256": p.raw_sha256, "rows": p.raw_rows}
+            for p in (ing.parts or (ing,))
+        ],
         "rows_out": int(len(cleaned.samples)),
         "cleaning": report,
         "noise_floor": floor,

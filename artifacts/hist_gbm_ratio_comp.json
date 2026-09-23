@@ -1,6 +1,6 @@
 {
-  "created_utc": "2026-09-22T16:33:55+00:00",
-  "model_fingerprint": "65488287bbffb734c84b90d3a2b760a36cb69e1e5f2f5c7cb7b6b93f0528dab3",
+  "created_utc": "2026-09-23T21:54:52+00:00",
+  "model_fingerprint": "96dd5c9f24bbca58b67aae93ae0e50276250e5ef39412ec045a02b13e501eaed",
   "stresspredict_version": "0.1.0",
   "model": "hist_gbm",
   "parameterisation": "ratio",
@@ -8,14 +8,25 @@
   "seed": 20260921,
   "tuned": true,
   "tuning_protocol": "HalvingRandomSearchCV, inner GroupKFold(3) grouped by grade, scoring=neg_mean_absolute_error",
-  "n_train_rows": 1359,
-  "n_train_grades": 562,
-  "n_train_families": 17,
+  "n_train_rows": 4283,
+  "n_train_grades": 665,
+  "n_train_families": 18,
   "per_component": {
     "tensile_strength": {
-      "n_train_rows": 1359,
-      "n_train_grades": 562,
+      "n_train_rows": 4283,
+      "n_train_grades": 665,
       "unit": "MPa",
+      "best_params": {
+        "regressor__regressor__model__min_samples_leaf": 10,
+        "regressor__regressor__model__max_leaf_nodes": 15,
+        "regressor__regressor__model__learning_rate": 0.1,
+        "regressor__regressor__model__l2_regularization": 1.0
+      }
+    },
+    "yield_ratio": {
+      "n_train_rows": 3900,
+      "n_train_grades": 658,
+      "unit": "-",
       "best_params": {
         "regressor__regressor__model__min_samples_leaf": 5,
         "regressor__regressor__model__max_leaf_nodes": 15,
@@ -23,23 +34,12 @@
         "regressor__regressor__model__l2_regularization": 1.0
       }
     },
-    "yield_ratio": {
-      "n_train_rows": 984,
-      "n_train_grades": 556,
-      "unit": "-",
-      "best_params": {
-        "regressor__regressor__model__min_samples_leaf": 10,
-        "regressor__regressor__model__max_leaf_nodes": 15,
-        "regressor__regressor__model__learning_rate": 0.06,
-        "regressor__regressor__model__l2_regularization": 0.1
-      }
-    },
     "elongation": {
-      "n_train_rows": 661,
-      "n_train_grades": 443,
+      "n_train_rows": 3585,
+      "n_train_grades": 546,
       "unit": "%",
       "best_params": {
-        "regressor__regressor__model__min_samples_leaf": 5,
+        "regressor__regressor__model__min_samples_leaf": 10,
         "regressor__regressor__model__max_leaf_nodes": 15,
         "regressor__regressor__model__learning_rate": 0.1,
         "regressor__regressor__model__l2_regularization": 1.0
@@ -47,61 +47,79 @@
     }
   },
   "training_data": {
-    "source_id": "steelbench_v1_open",
-    "raw_file": "data/raw/steelbench_core_open.csv",
-    "raw_sha256": "c95a119978703b50488381924f3a4932eee82f8305123c90d0b01a7ade0f3c2f",
-    "rows_after_cleaning": 1359
+    "source_id": "steelbench_v1_open+mendeley_jmwb9ddd43",
+    "raw_file": "data/raw/steelbench_core_open.csv + data/raw/mendeley_jmwb9ddd43.xlsx",
+    "raw_sha256": "d57de8a462b7f38aa58997e9ce77169e1e2016ad53ba82a7cdb03ba336ab22e0",
+    "rows_after_cleaning": 4283,
+    "raw_files": [
+      {
+        "source_id": "steelbench_v1_open",
+        "file": "data/raw/steelbench_core_open.csv",
+        "sha256": "c95a119978703b50488381924f3a4932eee82f8305123c90d0b01a7ade0f3c2f",
+        "rows": 1360
+      },
+      {
+        "source_id": "mendeley_jmwb9ddd43",
+        "file": "data/raw/mendeley_jmwb9ddd43.xlsx",
+        "sha256": "eaa89971150cff2bd97d8a1fe20b21e908731fcf755b37155608b1200235b484",
+        "rows": 3234
+      }
+    ],
+    "rows_by_source": {
+      "mendeley_jmwb9ddd43": 2924,
+      "steelbench_v1_open": 1359
+    }
   },
   "element_ranges": {
     "C": {
-      "min": 0.01,
+      "min": 0.008,
       "max": 2.05,
-      "n_reported": 1359
+      "n_reported": 4280
     },
     "Mn": {
       "min": 0.02,
       "max": 20.0,
-      "n_reported": 1359
+      "n_reported": 4265
     },
     "Si": {
-      "min": 0.03,
+      "min": 0.01,
       "max": 5.0,
-      "n_reported": 1168
+      "n_reported": 3586
     },
     "Cr": {
       "min": 0.01,
       "max": 29.0,
-      "n_reported": 1178
+      "n_reported": 2908
     },
     "Ni": {
       "min": 0.01,
       "max": 60.5,
-      "n_reported": 1101
+      "n_reported": 2362
     },
     "Mo": {
       "min": 0.0,
       "max": 6.5,
-      "n_reported": 963
+      "n_reported": 2800
     },
     "V": {
       "min": 0.0,
-      "max": 0.455,
-      "n_reported": 1359
+      "max": 0.5,
+      "n_reported": 1498
     },
     "Cu": {
       "min": 0.01,
       "max": 4.0,
-      "n_reported": 781
+      "n_reported": 940
     },
     "Al": {
       "min": 0.0,
       "max": 3.75,
-      "n_reported": 577
+      "n_reported": 631
     }
   },
   "calibration_holdout": {
     "reserved": true,
-    "n_rows": 275,
+    "n_rows": 656,
     "grouped_by": "grade_group",
     "purpose": "Phase 3 split-conformal calibration; unused in v1"
   },

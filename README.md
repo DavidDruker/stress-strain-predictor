@@ -7,11 +7,11 @@ prediction actually has.
 
 ```bash
 $ python -m stresspredict.predict --composition "C=0.40,Mn=0.80,Cr=1.00,Mo=0.20,Si=0.25"
-  yield strength      679.9 MPa
-  tensile strength    884.4 MPa
-  elongation           16.3 %
-  yield ratio         0.769
-  UTS x EL            14418 MPa.%
+  yield strength      806.5 MPa
+  tensile strength    984.7 MPa
+  elongation           18.2 %
+  yield ratio         0.819
+  UTS x EL            17940 MPa.%
 
   all elements within training range
 ```
@@ -52,9 +52,59 @@ that JavaScript under Node and asserts it matches Python to 1e-9 on every
 training row -- the only thing that makes having the same maths in two languages
 defensible. Regenerate the export with `python -m stresspredict.export_web`.
 
-## Results
+## The shipped model: two sources, promoted on a third
 
-SteelBench v1.0 open release, 1,359 rows after cleaning, 562 grades, 17 families.
+The model in `artifacts/` and on the test bench is fitted on **SteelBench + the
+Mendeley steel database**: 4,283 rows, 665 grades. It was chosen by scoring it on
+a **third dataset that nothing trains on**, under a rule written down before any
+held-out number existed.
+
+**Why a second source.** Scored zero-shot on 3,232 room-temperature Mendeley
+steels, the SteelBench-only model missed by about 250 MPa, with a -210 MPa mean
+bias and no prediction above 1,052 MPa. Nearly all of that came from quenched,
+tempered, carburised and aged steels, which SteelBench barely covers.
+
+**The overlap removed first.** Mendeley is not independent of SteelBench.
+SteelBench's Kaggle tier holds 112 AISI grades from the same handbook lineage,
+and 308 Mendeley rows repeat a SteelBench row's exact (UTS, YS, EL). A counted
+cleaning rule (`drop_cross_source_duplicate`) drops those rows. Mendeley's AISI
+names are also mapped to SteelBench's grade ids, so a grade-grouped split keeps
+each grade on one side across *both* sources.
+
+**The held-out set.** matminer `steel_strength` (Citrine), 312 steels. No
+composition comes within 0.3 wt% per element of any SteelBench row, and no
+properties match either source. Reproduce with
+`python -m stresspredict.external --baseline <previous artifact>`.
+
+| Held-out, 312 steels | UTS MAE | YS MAE | EL MAE | mean MAE ratio |
+|---|---|---|---|---|
+| SteelBench only (previous) | 757 MPa | 782 MPa | 6.75 pp | 1.00 |
+| **SteelBench + Mendeley (shipped)** | **409** | **430** | **4.90** | **0.605** |
+| same, + processing inputs | 616 | 620 | 4.01 | 0.734 |
+
+This set only tests the strong end. Every held-out steel has YS >= 1,000 MPa:
+maraging and secondary-hardening grades, strengthened by Co, Ti and W, none of
+which are model inputs. It says nothing about typical-steel accuracy, and all
+three models still miss it badly.
+
+**What it cost.** In grade-grouped CV on the merged pool, the new model does
+slightly *worse* on SteelBench's own rows than the SteelBench-only model: UTS 112
+vs 98 MPa, YS 112 vs 102, elongation 5.19 vs 4.86 pp. Wider coverage of hardened
+carbon and low-alloy steels cost a little accuracy on SteelBench's stainless-heavy
+mix. The promotion rule did not gate on this; it is reported so the trade is
+visible.
+
+**Processing is the bigger lever, and it is not shipped.** Given processing class
+and temperatures as inputs, the same CV cuts Mendeley-row error from 161 to 125
+MPa for UTS and from 3.97 to 2.81 pp for elongation. It lost on the held-out set
+only because that set has no processing information to give it. Shipping it would
+also mean new inputs on the test bench.
+
+## Results: the evaluation methodology, on SteelBench
+
+Everything from here to *Figures* evaluates the **SteelBench-only** model on the
+SteelBench v1.0 open release: 1,359 rows after cleaning, 562 grades, 17 families.
+It stays reproducible from `data/processed/`, which is SteelBench-only on purpose.
 Composition-only. Hyper-parameters tuned inside every outer fold. Full tables in
 [`reports/results.md`](reports/results.md).
 
@@ -187,15 +237,15 @@ them; `predict()` returns the same information in `range_guard`.
 
 | Element | Min wt% | Max wt% | Heats reporting it |
 |---|---|---|---|
-| `C` | 0.01 | 2.05 | 1,359 |
-| `Mn` | 0.02 | 20 | 1,359 |
-| `Si` | 0.03 | 5 | 1,168 |
-| `Cr` | 0.01 | 29 | 1,178 |
-| `Ni` | 0.01 | 60.5 | 1,101 |
-| `Mo` | 0 | 6.5 | 963 |
-| `V` | 0 | 0.455 | 1,359 |
-| `Cu` | 0.01 | 4 | 781 |
-| `Al` | 0 | 3.75 | 577 |
+| `C` | 0.008 | 2.05 | 4,280 |
+| `Mn` | 0.02 | 20 | 4,265 |
+| `Si` | 0.01 | 5 | 3,586 |
+| `Cr` | 0.01 | 29 | 2,908 |
+| `Ni` | 0.01 | 60.5 | 2,362 |
+| `Mo` | 0 | 6.5 | 2,800 |
+| `V` | 0 | 0.5 | 1,498 |
+| `Cu` | 0.01 | 4 | 940 |
+| `Al` | 0 | 3.75 | 631 |
 
 Two things these ranges do **not** capture, and both matter more than the numbers
 above. A chemistry can sit inside every single range and still belong to an alloy
@@ -244,16 +294,21 @@ python -m venv .venv
 .\.venv\Scripts\Activate.ps1          # Windows;  source .venv/bin/activate on Linux
 python -m pip install -e ".[dev]"
 
-# fetch the dataset (CC BY 4.0, not committed -- see data/README.md)
+# fetch the datasets (not committed -- DOIs, licences, checksums in data/README.md)
 curl -L -o data/raw/steelbench_core_open.csv \
   https://zenodo.org/api/records/18530558/files/steelbench_core_open.csv/content
+curl -L -o data/raw/mendeley_jmwb9ddd43.xlsx \
+  https://data.mendeley.com/public-files/datasets/jmwb9ddd43/files/cc944ab8-d3c8-448c-ac1d-172e8cc7e11d/file_downloaded
+curl -L -o data/raw/steel_strength.json.gz https://ndownloader.figshare.com/files/13354691
 
-python -m stresspredict.ingest --source steelbench    # clean + manifest + noise floor
+python -m stresspredict.ingest --source steelbench    # SteelBench-only: the evaluation below
+python -m stresspredict.ingest --source merged --out-dir data/processed_merged
 python -m pytest -q
 python -m stresspredict.evaluate --protocol all       # 4 protocols x 5 models x 3 targets
 python -m stresspredict.report                        # -> reports/results.md
 python -m stresspredict.plots                         # -> reports/figures/
-python -m stresspredict.train                         # -> artifacts/
+python -m stresspredict.train                         # merged pool -> artifacts/
+python -m stresspredict.external                      # held-out steel_strength score
 python -m stresspredict.predict --composition "C=0.40,Mn=0.80,Cr=1.00"
 ```
 
@@ -275,7 +330,8 @@ data/raw/*.csv
   -> splits.py     4 leakage-aware protocols; reserved calibration holdout
   -> models.py     dummy -> ridge -> RF -> extra trees -> HistGBM
   -> evaluate.py   nested tuning inside each outer fold -> reports/*.json
-  -> train.py      final fit + sidecar with the training CSV's SHA-256
+  -> train.py      final fit on the merged pool + sidecar with every source's SHA-256
+  -> external.py   score on the held-out steel_strength set
   -> predict.py    composition dict -> landmarks + range guard
 ```
 
@@ -327,7 +383,7 @@ counted.
 stresspredict/     the package (schema, units, ingest, clean, features, targets,
                    grouping, splits, models, metrics, noise_floor, evaluate,
                    train, predict, plots, report, export_web)
-tests/             110 tests; integration tests skip cleanly without the dataset
+tests/             114 tests; integration tests skip cleanly without the dataset
 web/               the test bench: app.html, the exported model, and
                    build_site.sh, which wraps it for GitHub Pages
 tools/uitest/      drives the test bench in a real browser (puppeteer)
@@ -357,8 +413,8 @@ Not for design allowables or safety-critical use.
 |---|---|---|
 | 0 | Data foundation: ingest, clean, manifest, noise floor | done |
 | 1 | v1 model: features, targets, splits, ladder, evaluation, predict | done |
-| 1b | matbench_steels yardstick + contamination check | next |
-| 2 | Heat-treatment ablation (`--features comp_ht`) + Mendeley zero-shot test | flag already implemented |
+| 1b | matbench_steels / steel_strength yardstick + contamination check | done -- the held-out promotion set |
+| 2 | Mendeley zero-shot test, then merged training; processing-input model measured | done; processing model not shipped |
 | 3 | Split-conformal intervals + k-NN applicability domain | calibration holdout already reserved |
 | 4 | Curve reconstruction | **gated on data** -- no open source reports strain at UTS |
 | 5 | App / API | interactive test bench shipped ([live](https://daviddruker.github.io/stress-strain-predictor/)); API not before Phase 3 |
@@ -368,5 +424,9 @@ Not for design allowables or safety-critical use.
 
 Code: MIT. Data: CC BY 4.0, licensed separately by its publishers -- see
 [data/README.md](data/README.md). Training data is SteelBench v1.0
-(DOI [10.5281/zenodo.18530558](https://doi.org/10.5281/zenodo.18530558)).
+(DOI [10.5281/zenodo.18530558](https://doi.org/10.5281/zenodo.18530558), CC BY 4.0) and
+*A database of mechanical properties of steels*, Ghorbani, Zhao and Birbilis
+(DOI [10.17632/jmwb9ddd43.1](https://doi.org/10.17632/jmwb9ddd43.1), CC BY 4.0), with
+cross-source duplicates removed. The held-out set is matminer `steel_strength`, from
+Citrine dataset 153092 (figshare 10.6084/m9.figshare.7250453, MIT).
 NIMS MatNavi was deliberately not scraped; its terms prohibit bulk acquisition.

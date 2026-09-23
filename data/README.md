@@ -86,11 +86,61 @@ matminer and pymatgen). Before any number is quoted, SteelBench-to-Citrine row
 overlap is checked -- both draw on published literature, and shared rows would
 contaminate the comparison.
 
-## External zero-shot test set (Phase 2)
+## Second training source -- Mendeley steel database
 
-*A database of mechanical properties of steels*,
-[10.17632/jmwb9ddd43.1](https://doi.org/10.17632/jmwb9ddd43.1), CC BY 4.0,
-3,234 entries. Used strictly zero-shot and **never merged** into training.
+| | |
+|---|---|
+| Title | *A database of mechanical properties of steels* (Ghorbani, Zhao, Birbilis) |
+| DOI | [10.17632/jmwb9ddd43.1](https://doi.org/10.17632/jmwb9ddd43.1) |
+| Licence | CC BY 4.0 |
+| File | `Steel database with labelled clusters.xlsx`, saved as `data/raw/mendeley_jmwb9ddd43.xlsx` |
+| SHA-256 | `eaa89971150cff2bd97d8a1fe20b21e908731fcf755b37155608b1200235b484` |
+| Rows | 3,234; YS, UTS and elongation on every row |
+
+```bash
+curl -L -o data/raw/mendeley_jmwb9ddd43.xlsx \
+  https://data.mendeley.com/public-files/datasets/jmwb9ddd43/files/cc944ab8-d3c8-448c-ac1d-172e8cc7e11d/file_downloaded
+```
+
+It began as the external zero-shot test set. The SteelBench-only model was
+scored on it first: UTS MAE 249 MPa on 3,232 rows, a -210 MPa bias, and no
+prediction above 1,052 MPa. After that it became training data.
+
+Several properties of this file shape how it is loaded:
+
+* **Room temperature by convention.** No row states a test temperature. Every
+  "at X C" in the text is a heat-treatment step, and 8 rows say "at RT" outright.
+* **A composition of 0 means "not specified"**, since every row lists all 20
+  elements. The loader drops the zeros, which is the same state a blank has in
+  SteelBench.
+* **The ASTM rows are specification minima.** They list grade, class and
+  thickness, so they are tagged `spec_minimum` like SteelBench's EMK tier.
+* **Processing is free text**, grouped into 12 clusters. Temperatures are
+  extracted where they are unambiguous. The shipped model does not use them.
+* **It overlaps SteelBench.** SteelBench's Kaggle tier holds 112 AISI grades from
+  the same handbook lineage. 308 rows repeat a SteelBench row's exact
+  (UTS, YS, EL) and are dropped by `clean`'s `drop_cross_source_duplicate` rule,
+  which keeps the SteelBench copy. Mendeley AISI names are also mapped to
+  SteelBench grade ids, so grade-grouped splits cannot separate the two copies.
+  Only 984 of the 3,232 rows share no grade, triple or composition with SteelBench.
+
+## Held-out promotion set -- matminer `steel_strength`
+
+| | |
+|---|---|
+| Source | Citrine dataset 153092, *Mechanical properties of some steels*, via matminer |
+| URL | <https://ndownloader.figshare.com/files/13354691> (figshare 10.6084/m9.figshare.7250453, MIT) |
+| SHA-256 | `e36501d7057cd833223bb8ed9948668b5ac90fd585d29a749f45af51c1d7f6ad` (matches matminer's metadata) |
+| Rows | 312; YS and UTS on all, elongation on 303; wt% composition |
+
+This set is never used for training or tuning. `python -m stresspredict.external`
+scores a model on it. It has no composition within 0.3 wt% per element of any
+SteelBench row, and no property overlap with either training source.
+matbench_steels is the yield-only, deduplicated view of the same 312 steels.
+
+It covers only ultra-high-strength steels. Every row has YS >= 1,000 MPa, mostly
+maraging and secondary-hardening grades that are strengthened by Co, Ti and W,
+which are not model inputs. Test temperature is not stated.
 
 ## Deliberately excluded -- NIMS MatNavi
 
@@ -102,9 +152,19 @@ Note the distinction: 360 NIMS-derived rows arrive *inside* SteelBench under
 SteelBench's own CC BY 4.0 licence. That is redistribution by the benchmark's
 authors, not acquisition from MatNavi by this project.
 
-## Why the sources are never merged
+## How the sources are combined, and how they are not
 
-Each dataset has exactly one job. Merging would destroy SteelBench's shipped
-grade / family / provenance labels, which are what make its evaluation protocols
-citable, and "trained on SteelBench, evaluated zero-shot on 3,234 entries from an
-independent source" is a strictly stronger claim than a merged pile of rows.
+The original rule was *never merge*, because merging would destroy SteelBench's
+grade, family and provenance labels. Once the zero-shot test had shown what
+SteelBench alone could not cover, the rule was changed, but its reason still
+holds:
+
+* **Labels survive the merge.** Every row keeps its own `source_id`,
+  `provenance` and `measurement_kind`, so any result can still be split by
+  source.
+* **`data/processed/` stays SteelBench-only.** Every cross-validated number in
+  `reports/results.md` is a SteelBench evaluation and must stay reproducible.
+  The merged pool is written separately to `data/processed_merged/`.
+* **One dataset is never merged.** `steel_strength` is the held-out set the
+  shipped model was promoted on. The promotion rule was fixed before any
+  held-out number was computed.

@@ -1,0 +1,71 @@
+{
+  "candidate": {
+    "artifact": "artifacts/hist_gbm_ratio_comp.joblib",
+    "yield_strength": {
+      "n": 312,
+      "mae": 430.3724,
+      "rmse": 514.7288,
+      "r2": -1.9164,
+      "median_ae": 354.5013,
+      "mape": 30.7308,
+      "bias": -354.2183,
+      "within_20pct": 0.3462
+    },
+    "tensile_strength": {
+      "n": 312,
+      "mae": 408.5828,
+      "rmse": 561.3264,
+      "r2": -1.6332,
+      "median_ae": 284.3608,
+      "mape": 24.3417,
+      "bias": -290.3512,
+      "within_20pct": 0.5641
+    },
+    "elongation": {
+      "n": 303,
+      "mae": 4.8969,
+      "rmse": 6.1448,
+      "r2": -0.4588,
+      "median_ae": 4.3123,
+      "mape": 47.9191,
+      "bias": -1.084,
+      "within_20pct": 0.2805
+    },
+    "uts_gt_ys_violations": 0
+  },
+  "baseline": {
+    "artifact": "artifacts/previous/steelbench_only.joblib",
+    "yield_strength": {
+      "n": 312,
+      "mae": 782.1311,
+      "rmse": 837.343,
+      "r2": -6.7178,
+      "median_ae": 713.8065,
+      "mape": 53.6558,
+      "bias": -782.1311,
+      "within_20pct": 0.0
+    },
+    "tensile_strength": {
+      "n": 312,
+      "mae": 757.3965,
+      "rmse": 847.2989,
+      "r2": -4.9996,
+      "median_ae": 782.162,
+      "mape": 43.6333,
+      "bias": -757.3965,
+      "within_20pct": 0.0481
+    },
+    "elongation": {
+      "n": 303,
+      "mae": 6.7464,
+      "rmse": 8.5727,
+      "r2": -1.8393,
+      "median_ae": 5.3758,
+      "mape": 79.833,
+      "bias": 4.9632,
+      "within_20pct": 0.3201
+    },
+    "uts_gt_ys_violations": 0
+  },
+  "mean_mae_ratio": 0.6052
+}

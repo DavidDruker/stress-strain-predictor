@@ -18,7 +18,8 @@ itself is deliberately out of scope for v1 (see [Limitations](limitations.md)).
 | Type | `HistGradientBoostingRegressor` x3, on a transformed target parameterisation |
 | Inputs | 9 element weight fractions (C, Mn, Si, Cr, Ni, Mo, V, Cu, Al) |
 | Outputs | yield strength (MPa), tensile strength (MPa), elongation (%), plus derived yield ratio, strength gap and UTS x EL |
-| Training data | SteelBench v1.0 open release, CC BY 4.0, DOI [10.5281/zenodo.18530558](https://doi.org/10.5281/zenodo.18530558) |
+| Training data | SteelBench v1.0 open release ([10.5281/zenodo.18530558](https://doi.org/10.5281/zenodo.18530558)) + Mendeley steel database ([10.17632/jmwb9ddd43.1](https://doi.org/10.17632/jmwb9ddd43.1)), both CC BY 4.0: 4,283 rows / 665 grades after removing cross-source duplicates |
+| Promoted on | held-out matminer `steel_strength` (312 steels, never trained on): mean MAE ratio 0.605 vs the SteelBench-only model |
 | Licence | MIT (code); the data is CC BY 4.0 and licensed separately |
 | Framework | scikit-learn only -- no XGBoost, no matminer, no PyTorch |
 
@@ -149,6 +150,15 @@ than the fold-to-fold spread is not a difference.
   rule that fired is documented.
 
 ## Training data
+
+The shipped fit uses two sources: SteelBench (below) and the Mendeley steel
+database (3,234 AISI/ASTM datasheet rows, zeros read as "not specified", ASTM
+rows tagged as spec minima). The 308 rows that repeat a SteelBench row are
+removed, leaving 4,283 rows: UTS 4,283, YS 3,900, elongation 3,585. The
+evaluation methodology in this card was run on SteelBench alone, and those
+numbers are the SteelBench-only model's. On SteelBench rows, the merged model's
+grade-grouped CV error is slightly higher (UTS 112 vs 98 MPa). See the README
+section *The shipped model* and [`data/README.md`](../data/README.md).
 
 SteelBench v1.0 open release: **1,360 rows, 562 grades, 17 families**, of which
 1,359 survive cleaning. Note this is *not* the 1,636 rows / 594 grades the Zenodo

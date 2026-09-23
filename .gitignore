@@ -11,6 +11,7 @@ dist/
 # Data: raw and processed are reproducible from the documented DOIs, never committed.
 data/raw/
 data/processed/
+data/processed_merged/
 # data/external/ IS committed (small, vendored with provenance) - see data/README.md
 
 # The fitted model is reproducible from the committed code, the pinned

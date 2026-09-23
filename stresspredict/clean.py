@@ -48,6 +48,9 @@ RULES = [
      f"tensile_strength outside {schema.VALID_RANGES['tensile_strength']} MPa"),
     ("drop_yield_ge_tensile", "drop",
      "yield_strength >= tensile_strength -- physically impossible, so the row is untrustworthy"),
+    ("drop_cross_source_duplicate", "drop",
+     "same (UTS, YS, EL) as a row from an earlier source -- one datasheet row reached "
+     "through two publishers; the earlier source's copy is kept"),
     ("drop_duplicate_sample_id", "drop", "repeated sample_id; the first occurrence is kept"),
 ]
 
@@ -55,6 +58,30 @@ RULES = [
 def _out_of_range(s: pd.Series, lo: float, hi: float) -> pd.Series:
     """True where a value is present and outside [lo, hi]."""
     return s.notna() & ~s.between(lo, hi)
+
+
+def _cross_source_duplicates(s: pd.DataFrame) -> pd.Series:
+    """Rows repeating another source's exact landmark triple.
+
+    Matching on all three landmarks rather than on composition is deliberate:
+    two publishers transcribe the same datasheet with different composition
+    precision (range midpoints vs nominal values), but the three reported
+    properties survive the copy intact. Kept rows would double-weight one
+    measurement and put its twin on the other side of every split.
+    """
+    full = s[list(schema.TARGETS)].notna().all(axis=1)
+    key = pd.Series(
+        list(zip(*(s[t].round(0) for t in ("tensile_strength", "yield_strength", "elongation")),
+                 strict=True)),
+        index=s.index,
+    )
+    seen: dict[tuple, str] = {}
+    dup = pd.Series(False, index=s.index)
+    for idx in s.index[full]:
+        k, src = key[idx], s.at[idx, "source_id"]
+        first = seen.setdefault(k, src)
+        dup[idx] = first != src
+    return dup
 
 
 def clean(samples: pd.DataFrame, composition: pd.DataFrame) -> tuple[Cleaned, dict]:
@@ -117,6 +144,8 @@ def clean(samples: pd.DataFrame, composition: pd.DataFrame) -> tuple[Cleaned, di
         s["yield_strength"].notna() & (s["yield_strength"] >= s["tensile_strength"]),
         "drop_yield_ge_tensile",
     )
+    if s["source_id"].nunique() > 1:
+        drop(_cross_source_duplicates(s), "drop_cross_source_duplicate")
     drop(s["sample_id"].duplicated(keep="first"), "drop_duplicate_sample_id")
 
     s = s.reset_index(drop=True)

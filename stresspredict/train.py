@@ -37,6 +37,10 @@ from . import (
 )
 
 ARTIFACT_DIR = Path("artifacts")
+# The shipped model is fitted on SteelBench + Mendeley (`ingest --source merged`).
+# data/processed/ stays SteelBench-only, because every cross-validated number in
+# reports/results.md is a SteelBench evaluation and must stay reproducible.
+MERGED_DIR = Path("data/processed_merged")
 
 
 def training_ranges(df: pd.DataFrame, comp_long: pd.DataFrame) -> dict:
@@ -87,10 +91,12 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--fast", action="store_true", help="skip hyper-parameter search")
     ap.add_argument("--seed", type=int, default=splits.DEFAULT_SEED)
     ap.add_argument("--out-dir", type=Path, default=ARTIFACT_DIR)
+    ap.add_argument("--processed-dir", type=Path, default=MERGED_DIR,
+                    help="ingested data to fit on; the shipped model uses the merged pool")
     args = ap.parse_args(argv)
 
-    df, comp_long = evaluate.load_processed()
-    manifest_path = evaluate.PROCESSED_DIR / "data_manifest.json"
+    df, comp_long = evaluate.load_processed(args.processed_dir)
+    manifest_path = args.processed_dir / "data_manifest.json"
     manifest = json.loads(manifest_path.read_text(encoding="utf-8")) if manifest_path.exists() else {}
 
     tune = not args.fast
@@ -126,6 +132,8 @@ def main(argv: list[str] | None = None) -> int:
             "raw_file": manifest.get("raw_file"),
             "raw_sha256": manifest.get("raw_sha256"),
             "rows_after_cleaning": manifest.get("rows_out"),
+            "raw_files": manifest.get("raw_files"),
+            "rows_by_source": {str(k): int(v) for k, v in df["source_id"].value_counts().items()},
         },
         "element_ranges": training_ranges(df, comp_long),
         "calibration_holdout": {
