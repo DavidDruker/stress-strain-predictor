@@ -16,7 +16,8 @@ $ python -m stresspredict.predict --composition "C=0.40,Mn=0.80,Cr=1.00,Mo=0.20,
   all elements within training range
 ```
 
-There is also an **interactive test bench** in [`web/`](web): enter a chemistry, a
+There is also an **interactive test bench** in [`web/`](web), live at
+**<https://claude.ai/artifact/BQ3tVpNewt8iSoC2kX48B4>**: enter a chemistry, a
 cross-section and a length, and it runs the same fitted model in the browser over
 a 3D bar you can orbit. Asking for the geometry is what removes the percentages
 from the answer -- stress in MPa is N/mm^2, so an area turns it into a force and a
