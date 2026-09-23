@@ -856,10 +856,18 @@
      gauge where the two halves meet. */
   var NEAR_RIM = RINGS * SEG, FAR_RIM = NEAR_RIM + SEG;
   var CAP_NEAR = FAR_RIM + SEG, CAP_FAR = CAP_NEAR + 1;
+  /* The fracture face is not a fan to one centre point: it needs rings of its
+     own to carry a flat fibrous zone, a 45-degree shear lip, and the roughness
+     that makes it read as torn. CAPR rings from centre (0) to rim (CAPR). */
+  var CAPR = 7, CAP_INNER = CAP_FAR + 1;
+  function capRing(k, j) {
+    j = j % SEG;
+    return k === 0 ? CAP_NEAR : k === CAPR ? NEAR_RIM + j : CAP_INNER + (k - 1) * SEG + j;
+  }
 
   function makeTube() {
     var g = new THREE.BufferGeometry();
-    g.setAttribute("position", new THREE.BufferAttribute(new Float32Array((CAP_FAR + 1) * 3), 3));
+    g.setAttribute("position", new THREE.BufferAttribute(new Float32Array((CAP_INNER + (CAPR - 1) * SEG) * 3), 3));
     var idx = [], i, j;
     for (i = 0; i < RINGS - 1; i++) {
       for (j = 0; j < SEG; j++) {
@@ -870,8 +878,12 @@
     }
     var tubeCount = idx.length;
     for (j = 0; j < SEG; j++) {
-      idx.push(CAP_NEAR, NEAR_RIM + j, NEAR_RIM + (j + 1) % SEG);
       idx.push(CAP_FAR, FAR_RIM + (j + 1) % SEG, FAR_RIM + j);
+      idx.push(CAP_NEAR, capRing(1, j), capRing(1, j + 1));
+      for (var q = 1; q < CAPR; q++) {
+        idx.push(capRing(q, j), capRing(q + 1, j), capRing(q + 1, j + 1));
+        idx.push(capRing(q, j), capRing(q + 1, j + 1), capRing(q, j + 1));
+      }
     }
     g.setIndex(idx);
     // The broken face gets its own material. Shaded like the polished barrel it
@@ -908,25 +920,54 @@
     return { y: y, r: Math.max(r, 0.002) };
   }
 
-  /* Cup and cone: voids coalesce at the neck centre, the flat fibrous crack runs
-     outward, the last ligament shears near the surface. Both cap centres shift
-     the same way along the axis, so one half's cone seats in the other's cup. */
-  function deform(mesh, sign, uniform, neck, gaugeHalf, r0, rNeckMin, capShift) {
-    var pos = mesh.geometry.attributes.position, arr = pos.array, i, j, k = 0, first = null, last = null;
+  /* Cup and cone, as a ductile steel actually breaks. Voids nucleate and
+     coalesce at the centre of the neck, where triaxiality peaks, and the crack
+     runs outward FLAT through that fibrous zone. The last ring of ligament near
+     the surface fails in shear at about 45 degrees. So one half keeps a raised
+     rim around a flat, rough floor (the cup) and the other a flat top with a
+     bevelled edge (the cone).
+
+     Both halves are cut by ONE surface, x = -lip(rho) + rough(rho, angle), in
+     each half's local frame, so the cone seats exactly in the cup. The cup half
+     (+x) keeps the rim that surface leaves behind; the cone half (-x) loses it,
+     so its barrel rings that would sit inside the bevel collapse onto the rim. */
+  var LIP_START = 0.58;   // fibrous zone out to ~58% of the neck radius, shear lip beyond
+  function hash(a, b) { var h = Math.sin(a * 127.1 + b * 311.7) * 43758.5453; return h - Math.floor(h) - 0.5; }
+
+  function deform(mesh, sign, uniform, neck, gaugeHalf, r0, rNeckMin, fractured) {
+    var pos = mesh.geometry.attributes.position, arr = pos.array, i, j, k = 0, last = null;
+    var first = profileAt(0, uniform, neck, gaugeHalf, r0, rNeckMin), rim = first.r;
+    var rhoC = rim * LIP_START;
+    var lip = function (rho) { return fractured ? Math.max(0, rho - rhoC) : 0; };
+    var rough = function (q, jj) {
+      if (!fractured || q >= CAPR) return 0;
+      var rho = rim * q / CAPR;
+      // Dimpled and uneven across the fibrous zone, fading out up the lip.
+      return rim * 0.09 * hash(q, jj) * Math.max(0, 1 - rho / (rhoC * 1.15));
+    };
+    var lipDepth = lip(rim);
     for (i = 0; i < RINGS; i++) {
-      var pr = profileAt(i / (RINGS - 1), uniform, neck, gaugeHalf, r0, rNeckMin);
-      if (i === 0) first = pr;
+      var pr = i === 0 ? first : profileAt(i / (RINGS - 1), uniform, neck, gaugeHalf, r0, rNeckMin);
       if (i === RINGS - 1) last = pr;
       var x = sign * pr.y;
-      if (capShift !== 0 && i === 0) x += capShift * 0.22;   // shear lip at the rim
+      if (fractured) {
+        if (sign > 0 && i === 0) x = -lipDepth;                 // the cup's rim stands proud
+        if (sign < 0) x = -Math.max(pr.y, lipDepth);            // the cone's rim is sheared away
+      }
       for (j = 0; j < SEG; j++) { arr[k++] = x; arr[k++] = pr.r * COS[j]; arr[k++] = pr.r * SIN[j]; }
     }
     // Duplicated rims, positioned with the rings they shadow.
-    var nearX = sign * first.y + (capShift !== 0 ? capShift * 0.22 : 0);
-    for (j = 0; j < SEG; j++) { arr[k++] = nearX; arr[k++] = first.r * COS[j]; arr[k++] = first.r * SIN[j]; }
+    var nearX = fractured ? -lipDepth : 0;
+    for (j = 0; j < SEG; j++) { arr[k++] = nearX; arr[k++] = rim * COS[j]; arr[k++] = rim * SIN[j]; }
     for (j = 0; j < SEG; j++) { arr[k++] = sign * last.y; arr[k++] = last.r * COS[j]; arr[k++] = last.r * SIN[j]; }
-    arr[k++] = sign * first.y + capShift; arr[k++] = 0; arr[k++] = 0;
+    arr[k++] = rough(0, 0); arr[k++] = 0; arr[k++] = 0;
     arr[k++] = sign * last.y; arr[k++] = 0; arr[k++] = 0;
+    for (var q = 1; q < CAPR; q++) {
+      var rho = rim * q / CAPR;
+      for (j = 0; j < SEG; j++) {
+        arr[k++] = -lip(rho) + rough(q, j); arr[k++] = rho * COS[j]; arr[k++] = rho * SIN[j];
+      }
+    }
     pos.needsUpdate = true;
     mesh.geometry.computeVertexNormals();
     mesh.geometry.computeBoundingSphere();
@@ -939,12 +980,8 @@
     var gh = GH * (1 + uniform);
     var rU = r0 / Math.sqrt(1 + Math.max(uniform, 0));
     var rNeckMin = rU * Math.sqrt(1 - (S.eng ? S.eng.reductionOfArea : 0.44));
-    // A ductile fracture face is essentially FLAT -- a fibrous central zone with
-    // a small shear lip at the rim. Any real depth here renders as a drilled
-    // bore rather than a break, especially on the cup half.
-    var capShift = fractured ? -Math.max(rNeckMin * 0.13, 0.004) : 0;
-    deform(barA, 1, uniform, neck, gh, r0, rNeckMin, capShift);
-    deform(barB, -1, uniform, neck, gh, r0, rNeckMin, capShift);
+    deform(barA, 1, uniform, neck, gh, r0, rNeckMin, fractured);
+    deform(barB, -1, uniform, neck, gh, r0, rNeckMin, fractured);
     barA.position.x = split; barB.position.x = -split;
     var end = gh + ENDL + split;
     gripR.position.x = end + 0.15; gripL.position.x = -end - 0.15;
