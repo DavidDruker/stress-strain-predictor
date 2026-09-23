@@ -324,14 +324,21 @@ counted.
 ## Repository layout
 
 ```
-stresspredict/     the package (ingest, clean, features, targets, grouping,
-                   splits, models, metrics, noise_floor, evaluate, train,
-                   predict, plots, report)
-tests/             89 tests; integration tests skip cleanly without the dataset
+stresspredict/     the package (schema, units, ingest, clean, features, targets,
+                   grouping, splits, models, metrics, noise_floor, evaluate,
+                   train, predict, plots, report, export_web)
+tests/             110 tests; integration tests skip cleanly without the dataset
+web/               the test bench: app.html, the exported model, and
+                   build_site.sh, which wraps it for GitHub Pages
+tools/uitest/      drives the test bench in a real browser (puppeteer)
 data/README.md     DOIs, licences, checksums, and what the data actually is
 docs/              model card, evaluation methodology, provenance, limitations
 reports/           committed results JSON, generated results.md, figures/
 ```
+
+The test bench deploys to GitHub Pages on every push that touches `web/`
+(`.github/workflows/pages.yml`). To preview the exact deployed page locally, run
+`sh web/build_site.sh _site` and open `_site/index.html`.
 
 ## Known limits
 
@@ -354,7 +361,7 @@ Not for design allowables or safety-critical use.
 | 2 | Heat-treatment ablation (`--features comp_ht`) + Mendeley zero-shot test | flag already implemented |
 | 3 | Split-conformal intervals + k-NN applicability domain | calibration holdout already reserved |
 | 4 | Curve reconstruction | **gated on data** -- no open source reports strain at UTS |
-| 5 | App / API | not before Phase 3 |
+| 5 | App / API | interactive test bench shipped ([live](https://daviddruker.github.io/stress-strain-predictor/)); API not before Phase 3 |
 | 6 | Al / Ti / Cu / Ni | new loaders only, if the schema held |
 
 ## Licence and attribution
