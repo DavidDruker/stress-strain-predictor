@@ -461,7 +461,7 @@
     { n: "S355", c: { C: 0.18, Mn: 1.50, Si: 0.40, Cu: 0.30 } },
     { n: "304", c: { C: 0.06, Mn: 1.50, Si: 0.50, Cr: 18.5, Ni: 9.0 } }
   ];
-  var S = { c: {}, invalid: [], preset: null, mode: "pull",
+  var S = { c: {}, invalid: [], preset: null, mode: "pull", ran: false,
             area: 78.5, gauge: 50, target: 45, p: null, eng: null, curve: null };
   var el = {};
   ["presets", "els", "run", "guard", "curve", "viewport", "phase", "results", "tiles",
@@ -504,7 +504,9 @@
       var v = parseFloat(input.value);
       if (isFinite(v)) input.value = String(Math.round(v * old / now * 1e6) / 1e6);
       U[kind] = sel.value;
-      read(); recompute(); showResults(); rest();
+      // Same bar, same result, different units -- so it re-renders rather
+      // than clearing, and stays clear if no test has been run.
+      read(); recompute(); if (S.ran) showResults(); else clearResults(); rest();
     });
   }
   fillUnits(el["u-area"], "area"); fillUnits(el["u-len"], "len"); fillUnits(el["u-force"], "force");
@@ -512,7 +514,7 @@
   function apply(p) {
     S.preset = p.n;
     MODEL.elements.forEach(function (n) { el["el-" + n].value = p.c[n] === undefined ? "" : p.c[n]; });
-    read(); recompute(); showResults(); rest();
+    changed();
   }
 
   function num(input, kind, lo, fallback) {
@@ -677,6 +679,19 @@
   }
   function hideResults() { el.results.classList.add("pending"); }
 
+  /* Changing the bar clears the answer. The numbers are the test's result, so
+     they appear when a test is run, not while the inputs are being typed. */
+  function clearResults() {
+    S.ran = false;
+    TILES[S.mode].forEach(function (t) { el[t.id].innerHTML = "&mdash;"; });
+    el.verdict.className = "verdict";
+    el.verdict.textContent = "Run the test to see the result";
+    ["s-ys", "s-uts", "s-el", "s-ra"].forEach(function (id) { el[id].innerHTML = "&mdash;"; });
+    el.results.classList.add("pending");
+    drawCurve(1, null);
+  }
+  function changed() { read(); recompute(); clearResults(); rest(); }
+
   /* ================= curve ================= */
   var cc = el.curve.getContext("2d");
   var css = function (n) { return getComputedStyle(document.documentElement).getPropertyValue(n).trim(); };
@@ -689,7 +704,7 @@
     if (el.curve.width !== cw || el.curve.height !== ch) { el.curve.width = cw; el.curve.height = ch; }
     cc.setTransform(dpr, 0, 0, dpr, 0, 0);
     cc.clearRect(0, 0, w, h);
-    if (!S.curve) return;
+    if (!S.curve || !S.ran) return;
 
     var padL = 44, padR = 10, padT = 16, padB = 20, i;
     var pts = S.curve.pts;
@@ -992,6 +1007,7 @@
 
   function run() {
     if (busy || !S.curve) return;
+    S.ran = true;
     var reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     return S.mode === "load" ? runLoad(reduced) : runPull(reduced);
   }
@@ -1108,18 +1124,18 @@
     el["mode-load"].setAttribute("aria-pressed", String(mode === "load"));
     el["load-row"].hidden = mode !== "load";
     el.run.textContent = mode === "pull" ? "Pull to failure" : "Apply the load";
-    buildTiles(); read(); recompute(); showResults(); rest();
+    buildTiles(); changed();
   }
   el["mode-pull"].addEventListener("click", function () { setMode("pull"); });
   el["mode-load"].addEventListener("click", function () { setMode("load"); });
 
   MODEL.elements.forEach(function (n) {
     el["el-" + n].addEventListener("input", function () {
-      S.preset = null; read(); recompute(); showResults(); rest();
+      S.preset = null; changed();
     });
   });
   [el.area, el.gauge, el.target].forEach(function (input) {
-    input.addEventListener("input", function () { read(); recompute(); showResults(); rest(); });
+    input.addEventListener("input", changed);
   });
   el.run.addEventListener("click", run);
   var mq = window.matchMedia("(prefers-color-scheme: dark)");
@@ -1127,7 +1143,10 @@
 
   // Numbers first: the prediction needs neither three.js nor WebGL.
   buildTiles();
+  // On first open the numbers are the default preset's, as if it had just
+  // been tested; any change after that clears them until the next run.
   apply(PRESETS[1]);
+  S.ran = true; drawCurve(1, null); showResults();
   try { initThree(); rest(); }
   catch (err) {
     el.viewport.hidden = true;

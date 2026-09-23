@@ -146,6 +146,26 @@ async function setComposition(page, comp) {
   await sleep(160);
 }
 
+/* The readout is the result of a test, so it clears whenever the bar changes
+   and comes back only when the test is run. Checks that sweep many inputs run
+   the test after each one, under reduced motion so the run completes
+   synchronously instead of animating for three seconds per input. */
+async function withInstantRuns(page, fn) {
+  await page.emulateMediaFeatures([{ name: "prefers-reduced-motion", value: "reduce" }]);
+  try { await fn(); }
+  finally { await page.emulateMediaFeatures([{ name: "prefers-reduced-motion", value: "no-preference" }]); }
+}
+async function runNow(page) {
+  await page.evaluate(() => document.getElementById("run").click());
+  await sleep(120);
+}
+const curveInk = (page) => page.evaluate(() => {
+  const c = document.getElementById("curve");
+  const d = c.getContext("2d").getImageData(0, 0, c.width, c.height).data;
+  let n = 0; for (let i = 3; i < d.length; i += 4) if (d[i]) n += 1;
+  return n;
+});
+
 /* ------------------------------------------------------------------ */
 
 async function checkLoad(page) {
@@ -174,9 +194,51 @@ async function checkLoad(page) {
   if (r.yieldForce === null || r.breakForce === null) {
     fail("high", "load", "results are empty at rest", r, "The page should open in a working state with the default preset already computed.");
   } else ok("load", "results populated at rest");
+  if (await curveInk(page) === 0) {
+    fail("high", "load", "curve is blank at rest", r, "On first open the curve should show the default preset, as the numbers do.");
+  } else ok("load", "curve drawn at rest");
   if (page.__errors.length) {
     fail("high", "load", `${page.__errors.length} console/page error(s) on load`, page.__errors.slice(0, 6), "Fix the thrown errors; they can leave the UI half-wired.");
   } else ok("load", "no console errors");
+}
+
+async function checkClearsUntilRun(page) {
+  const input = await page.$("#el-C");
+  await input.click({ clickCount: 3 });
+  await input.type("0.5");
+  await sleep(160);
+  let r = await readResults(page);
+  const shown = [r.yieldForce, r.breakForce, r.stretch, r.finalLength, r.ys, r.uts, r.elong].filter((v) => v !== null);
+  if (shown.length) {
+    fail("high", "clears", "numbers stayed on screen after the chemistry changed", r,
+      "Any input change must clear the readout until the test is run (clearResults in changed()).");
+  } else ok("clears", "readout cleared on input change");
+  if (await curveInk(page) !== 0) {
+    fail("medium", "clears", "curve stayed drawn after the chemistry changed", {},
+      "The curve is the result too; drawCurve should draw nothing until the test runs.");
+  } else ok("clears", "curve cleared on input change");
+
+  // A unit change does not change the bar, so it must not reveal a result either.
+  await page.select("#u-area", "cm2");
+  await sleep(160);
+  r = await readResults(page);
+  if (r.ys !== null) fail("high", "clears", "a unit change revealed the result before a run", r,
+    "Unit changes re-render a shown result but must not show one that has not been tested.");
+  else ok("clears", "unit change keeps the readout clear");
+
+  await withInstantRuns(page, () => runNow(page));
+  r = await readResults(page);
+  if (r.ys === null || r.yieldForce === null) fail("high", "clears", "running the test did not show the numbers", r,
+    "run() must set S.ran and the run paths must call showResults().");
+  else ok("clears", "numbers appear after the run");
+
+  // Once tested, a unit change re-renders the same result instead of clearing it.
+  await page.select("#u-area", "mm2");
+  await sleep(160);
+  const again = await readResults(page);
+  if (again.ys === null) fail("medium", "clears", "a unit change cleared a result that had been tested", again,
+    "Same bar, same result: re-render in the new unit instead of clearing.");
+  else ok("clears", "unit change keeps a tested result");
 }
 
 async function checkPresets(page) {
@@ -186,6 +248,12 @@ async function checkPresets(page) {
       [...document.querySelectorAll("#presets .chip")].find((c) => c.textContent.trim() === n)?.click();
     }, name);
     await sleep(220);
+    const cleared = await readResults(page);
+    if (cleared.ys !== null) {
+      fail("high", "presets", `preset ${name} showed numbers before a run`, cleared,
+        "Picking a preset changes the bar; the readout should clear until the test is run.");
+    }
+    await runNow(page);
     const r = await readResults(page);
     if (r.ys === null || r.uts === null) {
       fail("high", "presets", `preset ${name} produced no numbers`, r, `Clicking ${name} left the readout blank; check apply()/recompute().`);
@@ -261,6 +329,7 @@ async function checkAwkwardInputs(page) {
 
   for (const c of cases) {
     await setComposition(page, c.comp);
+    await runNow(page);
     const r = await readResults(page);
     const errs = page.__errors.length;
 
@@ -310,6 +379,7 @@ async function checkInvariantSweep(page) {
         inp.value = Math.random() < 0.25 ? "" : rnd(0, 30).toFixed(3);
       });
       inputs[0].dispatchEvent(new Event("input", { bubbles: true }));
+      document.getElementById("run").click();   // synchronous under reduced motion
       // Null-guard: a renamed or removed element should surface as a finding,
       // not abort the whole run inside page.evaluate.
       const num = (id) => {
@@ -612,10 +682,11 @@ async function checkLoadMode(browser, url) {
      so that is the rupture criterion -- not the fracture strain. */
   const page = await newPage(browser);
   await load(page, url);
+  // Read the predicted strengths while the default preset's result is on
+  // screen: switching mode changes the test, so it clears the readout.
+  const base = await readResults(page);
   await page.click("#mode-load");
   await sleep(250);
-
-  const base = await readResults(page);
   const yieldF = base.ys * 78.5 / 1000;      // default specimen: 78.5 mm^2
   const breakF = base.uts * 78.5 / 1000;
 
@@ -748,11 +819,14 @@ async function main() {
     await load(page, url);
 
     await checkLoad(page);
-    await checkPresets(page);
+    await checkClearsUntilRun(page);
+    await withInstantRuns(page, () => checkPresets(page));
     await checkPull(page);
     page.__errors.length = 0;
-    await checkAwkwardInputs(page);
-    await checkInvariantSweep(page);
+    await withInstantRuns(page, async () => {
+      await checkAwkwardInputs(page);
+      await checkInvariantSweep(page);
+    });
     await checkOrbit(page);
     await checkReentrancy(page);
     await checkLeak(page);
